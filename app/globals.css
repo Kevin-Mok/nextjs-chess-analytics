@@ -58,6 +58,28 @@ a {
     transform 160ms ease;
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .elo-chart-scroll-shell,
+  .elo-chart-scroll-content,
+  .elo-chart-scroll-shell .recharts-wrapper,
+  .elo-chart-scroll-shell [data-mobile-chart-surface="true"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .elo-chart-scroll-shell:focus,
+  .elo-chart-scroll-shell:focus-visible,
+  .elo-chart-scroll-content:focus,
+  .elo-chart-scroll-content:focus-visible,
+  .elo-chart-scroll-shell .recharts-wrapper:focus,
+  .elo-chart-scroll-shell .recharts-wrapper:focus-visible,
+  .elo-chart-scroll-shell [data-mobile-chart-surface="true"],
+  .elo-chart-scroll-shell [data-mobile-chart-surface="true"]:focus,
+  .elo-chart-scroll-shell [data-mobile-chart-surface="true"]:focus-visible {
+    box-shadow: none !important;
+    outline: none !important;
+  }
+}
+
 .site-background {
   pointer-events: none;
   position: fixed;

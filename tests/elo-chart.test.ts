@@ -5,7 +5,9 @@ import {
   formatGameNumberTick,
   getEloChartConfig,
   getHomePreviewRatingDomain,
+  getSelectedChartPoint,
   getRatingDomain,
+  isMobileChartTap,
   withChartGameNumbers,
 } from "@/lib/insights-chart";
 import type { EloPoint, MilestonePoint } from "@/types/chess";
@@ -149,6 +151,11 @@ describe("insights chart helpers", () => {
     });
 
     expect(mobileConfig.enableHorizontalScroll).toBe(true);
+    expect(mobileConfig.accessibilityLayer).toBe(false);
+    expect(mobileConfig.surfaceTabIndex).toBe(-1);
+    expect(mobileConfig.surfaceFocusable).toBe(false);
+    expect(mobileConfig.showNativeTooltip).toBe(false);
+    expect(mobileConfig.tooltipCursor).toBe(false);
     expect(mobileConfig.contentWidth).toBe(560);
     expect(longSeriesConfig.contentWidth).toBe(715);
     expect(mobileConfig.margin.left).toBe(0);
@@ -189,8 +196,57 @@ describe("insights chart helpers", () => {
     });
 
     expect(config.enableHorizontalScroll).toBe(false);
+    expect(config.accessibilityLayer).toBe(true);
+    expect(config.surfaceTabIndex).toBeUndefined();
+    expect(config.surfaceFocusable).toBeUndefined();
+    expect(config.showNativeTooltip).toBe(true);
+    expect(config.tooltipCursor).toEqual({
+      stroke: "rgba(245,204,128,0.16)",
+    });
     expect(config.contentWidth).toBeNull();
     expect(config.margin.left).toBe(-18);
     expect(config.yAxisWidth).toBe(52);
+  });
+
+  it("treats short mobile touch movement as a tap", () => {
+    expect(
+      isMobileChartTap(
+        { clientX: 100, clientY: 120 },
+        { clientX: 108, clientY: 126 },
+      ),
+    ).toBe(true);
+  });
+
+  it("treats larger mobile touch movement as a scroll gesture", () => {
+    expect(
+      isMobileChartTap(
+        { clientX: 100, clientY: 120 },
+        { clientX: 118, clientY: 132 },
+      ),
+    ).toBe(false);
+  });
+
+  it("resolves the selected chart point by game id after data remapping", () => {
+    const chartPoints = withChartGameNumbers([
+      createPoint({ gameId: "game-2", sequence: 2, rating: 1214 }),
+      createPoint({ gameId: "game-3", sequence: 3, rating: 1226 }),
+      createPoint({ gameId: "game-4", sequence: 4, rating: 1233 }),
+    ]);
+
+    expect(getSelectedChartPoint(chartPoints, "game-3")).toMatchObject({
+      gameId: "game-3",
+      rating: 1226,
+      gameNumber: 2,
+    });
+  });
+
+  it("clears the selected chart point when the chosen game is no longer visible", () => {
+    const chartPoints = withChartGameNumbers([
+      createPoint({ gameId: "game-8", sequence: 8 }),
+      createPoint({ gameId: "game-9", sequence: 9 }),
+    ]);
+
+    expect(getSelectedChartPoint(chartPoints, "game-3")).toBeNull();
+    expect(getSelectedChartPoint(chartPoints, null)).toBeNull();
   });
 });

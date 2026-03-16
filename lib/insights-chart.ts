@@ -9,6 +9,10 @@ const MOBILE_ELO_CHART_MIN_WIDTH = 560;
 const MOBILE_ELO_CHART_MAX_WIDTH = 780;
 const MOBILE_ELO_CHART_BASE_WIDTH = 120;
 const MOBILE_ELO_CHART_WIDTH_PER_POINT = 5;
+const MOBILE_CHART_TAP_SLOP = 12;
+const DESKTOP_ELO_TOOLTIP_CURSOR = {
+  stroke: "rgba(245,204,128,0.16)",
+} as const;
 const HOME_MILESTONE_PRIORITY = [
   "Peak rating",
   "Biggest jump",
@@ -18,6 +22,11 @@ const HOME_MILESTONE_PRIORITY = [
 
 export interface ChartEloPoint extends EloPoint {
   gameNumber: number;
+}
+
+export interface ChartTouchPoint {
+  clientX: number;
+  clientY: number;
 }
 
 export interface HomePreviewAnnotation {
@@ -44,6 +53,11 @@ export interface EloChartMilestoneConfig {
 
 export interface EloChartConfig {
   enableHorizontalScroll: boolean;
+  accessibilityLayer: boolean;
+  showNativeTooltip: boolean;
+  surfaceTabIndex?: number;
+  surfaceFocusable?: boolean;
+  tooltipCursor: false | { stroke: string };
   contentWidth: number | null;
   xAxisTickCount: number;
   yAxisWidth: number;
@@ -89,6 +103,31 @@ export function withChartGameNumbers(points: EloPoint[]): ChartEloPoint[] {
   }));
 }
 
+export function isMobileChartTap(
+  startPoint: ChartTouchPoint | null,
+  endPoint: ChartTouchPoint | null,
+): boolean {
+  if (!startPoint || !endPoint) {
+    return false;
+  }
+
+  return (
+    Math.abs(endPoint.clientX - startPoint.clientX) <= MOBILE_CHART_TAP_SLOP &&
+    Math.abs(endPoint.clientY - startPoint.clientY) <= MOBILE_CHART_TAP_SLOP
+  );
+}
+
+export function getSelectedChartPoint(
+  points: ChartEloPoint[],
+  selectedGameId: string | null,
+): ChartEloPoint | null {
+  if (!selectedGameId) {
+    return null;
+  }
+
+  return points.find((point) => point.gameId === selectedGameId) ?? null;
+}
+
 export function getRatingDomain(points: EloPoint[]): [number, number] {
   if (points.length === 0) {
     return [0, 1];
@@ -125,6 +164,11 @@ export function getEloChartConfig({
 }: GetEloChartConfigOptions): EloChartConfig {
   return {
     enableHorizontalScroll: isMobile,
+    accessibilityLayer: !isMobile,
+    showNativeTooltip: !isMobile,
+    surfaceTabIndex: isMobile ? -1 : undefined,
+    surfaceFocusable: isMobile ? false : undefined,
+    tooltipCursor: isMobile ? false : DESKTOP_ELO_TOOLTIP_CURSOR,
     contentWidth: isMobile ? getMobileEloChartWidth(pointCount) : null,
     xAxisTickCount:
       pointCount > 1
