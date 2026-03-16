@@ -39,6 +39,12 @@ describe("PGN ingest pipeline", () => {
   it("builds a rating series with rolling data and milestone coverage", () => {
     expect(summary.eloSeries.length).toBeGreaterThan(100);
     expect(summary.eloSeries.some((point) => point.rollingAverage !== null)).toBe(true);
+    expect(summary.eloSeries[0]?.opponent).toBe("bosevasanth");
+    expect(
+      summary.eloSeries.every(
+        (point) => point.date > "2026-02-13" || (point.date === "2026-02-13" && point.sequence >= 55),
+      ),
+    ).toBe(true);
     expect(summary.milestonePoints.some((point) => point.title === "Peak rating")).toBe(true);
   });
 

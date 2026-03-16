@@ -19,6 +19,12 @@ import {
 } from "recharts";
 
 import { formatCompactDate, formatRating, formatTimeControlLabel } from "@/lib/formatters";
+import {
+  type ChartEloPoint,
+  formatGameNumberTick,
+  getRatingDomain,
+  withChartGameNumbers,
+} from "@/lib/insights-chart";
 import type { EloPoint, MilestonePoint } from "@/types/chess";
 
 interface EloChartProps {
@@ -39,7 +45,7 @@ function getResultColor(result: EloPoint["result"]): string {
 }
 
 function EloTooltip({ active, payload }: TooltipContentProps) {
-  const point = payload?.[0]?.payload as EloPoint | undefined;
+  const point = payload?.[0]?.payload as ChartEloPoint | undefined;
 
   if (!active || !point) {
     return null;
@@ -54,7 +60,7 @@ function EloTooltip({ active, payload }: TooltipContentProps) {
         </span>
       </p>
       <p className="mt-1 text-white/64">
-        {point.opponent} · {formatCompactDate(point.date)}
+        Game {formatGameNumberTick(point.gameNumber)} · {point.opponent} · {formatCompactDate(point.date)}
       </p>
       <p className="mt-1 text-white/48">
         {formatTimeControlLabel(point.timeControl)}
@@ -66,16 +72,23 @@ function EloTooltip({ active, payload }: TooltipContentProps) {
 export function EloChart({ points, milestones }: EloChartProps) {
   const router = useRouter();
   const [showRollingAverage, setShowRollingAverage] = useState(true);
+  const chartPoints = withChartGameNumbers(points);
+  const milestoneGameNumbers = new Map(
+    chartPoints.map((point) => [point.gameId, point.gameNumber]),
+  );
+  const [minRating, maxRating] = getRatingDomain(points);
+  const xAxisTickCount =
+    chartPoints.length > 1 ? Math.min(8, chartPoints.length) : 1;
 
   return (
     <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 sm:p-6">
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/78">
-            Elo over time
+            Elo by game #
           </p>
           <p className="mt-2 text-sm text-white/58">
-            Result-colored points, rolling trendline, and milestone callouts.
+            Chronological game-number x-axis, result-colored points, rolling trendline, and milestone callouts.
           </p>
         </div>
         <label className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/68">
@@ -105,14 +118,14 @@ export function EloChart({ points, milestones }: EloChartProps) {
       <div className="h-[24rem]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
-            data={points}
-            margin={{ top: 16, right: 18, left: -18, bottom: 0 }}
+            data={chartPoints}
+            margin={{ top: 16, right: 18, left: -18, bottom: 4 }}
             onClick={(state: MouseHandlerDataParam) => {
               const index =
                 typeof state.activeTooltipIndex === "number"
                   ? state.activeTooltipIndex
                   : -1;
-              const point = index >= 0 ? points[index] : undefined;
+              const point = index >= 0 ? chartPoints[index] : undefined;
 
               if (point?.gameId) {
                 router.push(`/games/${point.gameId}` as Route);
@@ -121,15 +134,24 @@ export function EloChart({ points, milestones }: EloChartProps) {
           >
             <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
             <XAxis
-              dataKey="sequence"
+              type="number"
+              dataKey="gameNumber"
+              domain={["dataMin", "dataMax"]}
+              allowDecimals={false}
+              tickCount={xAxisTickCount}
+              tickFormatter={formatGameNumberTick}
               tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
               axisLine={false}
               tickLine={false}
+              tickMargin={8}
             />
             <YAxis
+              domain={[minRating, maxRating]}
+              allowDecimals={false}
               tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
               axisLine={false}
               tickLine={false}
+              tickMargin={8}
               width={52}
             />
             <Tooltip
@@ -156,15 +178,15 @@ export function EloChart({ points, milestones }: EloChartProps) {
                 connectNulls={false}
               />
             ) : null}
-            <Scatter data={points} dataKey="rating">
-              {points.map((point) => (
+            <Scatter data={chartPoints} dataKey="rating">
+              {chartPoints.map((point) => (
                 <Cell key={point.gameId} fill={getResultColor(point.result)} />
               ))}
             </Scatter>
             {milestones.map((milestone) => (
               <ReferenceDot
                 key={milestone.gameId}
-                x={milestone.sequence}
+                x={milestoneGameNumbers.get(milestone.gameId) ?? 0}
                 y={milestone.rating}
                 r={5}
                 fill="#f5cc80"

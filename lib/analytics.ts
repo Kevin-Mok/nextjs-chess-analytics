@@ -18,6 +18,11 @@ import type {
 import { PLAYER_IDENTITY } from "@/lib/identity";
 import { average, rollingAverage } from "@/lib/utils";
 
+const INSIGHT_RATING_BASELINE = {
+  date: "2026-02-13",
+  sequence: 55,
+} as const;
+
 function getBreakdown(games: NormalizedGame[]): ResultBreakdown {
   return games.reduce<ResultBreakdown>(
     (record, game) => {
@@ -127,6 +132,20 @@ function buildEloSeries(games: NormalizedGame[]): EloPoint[] {
     timeControl: game.timeControl,
     rollingAverage: rolling[index],
   }));
+}
+
+function isOnOrAfterInsightRatingBaseline(
+  game: Pick<NormalizedGame, "date" | "sequence">,
+): boolean {
+  if (game.date !== INSIGHT_RATING_BASELINE.date) {
+    return game.date > INSIGHT_RATING_BASELINE.date;
+  }
+
+  return game.sequence >= INSIGHT_RATING_BASELINE.sequence;
+}
+
+function getInsightRatingGames(games: NormalizedGame[]): NormalizedGame[] {
+  return games.filter((game) => isOnOrAfterInsightRatingBaseline(game));
 }
 
 function buildHeatmap(games: NormalizedGame[]): HeatmapCell[] {
@@ -342,8 +361,10 @@ function buildMilestones(games: NormalizedGame[], eloSeries: EloPoint[]): Milest
 }
 
 export function buildInsightSummary(games: NormalizedGame[]): InsightSummary {
-  const ratedGames = games.filter((game) => game.playerRating !== null);
-  const eloSeries = buildEloSeries(games);
+  // Skip the pre-Bosevas calibration games so rating insights start from the baseline the user wants.
+  const ratingGames = getInsightRatingGames(games);
+  const ratedGames = ratingGames.filter((game) => game.playerRating !== null);
+  const eloSeries = buildEloSeries(ratingGames);
   const allRatings = ratedGames
     .map((game) => game.playerRating)
     .filter((rating): rating is number => rating !== null);
@@ -410,7 +431,7 @@ export function buildInsightSummary(games: NormalizedGame[]): InsightSummary {
     timeControlBreakdown,
     terminationBreakdown: buildTerminations(games),
     eloSeries,
-    milestonePoints: buildMilestones(games, eloSeries),
+    milestonePoints: buildMilestones(ratingGames, eloSeries),
     openingHighlights: openingHighlights.slice(0, 6),
     spotlights: findSpotlights(games),
     recentGames: games.slice(-6).reverse(),
