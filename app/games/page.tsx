@@ -17,7 +17,7 @@ import { createPageMetadata } from "@/lib/metadata";
 export const metadata = createPageMetadata({
   title: "Games Explorer",
   description:
-    "Search, filter, sort, and page through the normalized Chess.com dataset without runtime PGN parsing.",
+    "Search, filter, sort, and page through the normalized Chess.com dataset without runtime parsing of the original export.",
 });
 
 interface GamesPageProps {

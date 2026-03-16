@@ -25,7 +25,7 @@
   <rect x="208" y="208" width="60" height="60" rx="12" fill="rgba(255,255,255,0.08)"/>
   <rect x="270" y="208" width="60" height="60" rx="12" fill="rgba(245,204,128,0.12)"/>
   <rect x="332" y="208" width="60" height="60" rx="12" fill="rgba(255,255,255,0.08)"/>
-  <text x="118" y="430" fill="rgba(245,204,128,0.84)" font-family="Georgia, serif" font-size="22" letter-spacing="5">STATIC PGN ANALYTICS</text>
+  <text x="118" y="430" fill="rgba(245,204,128,0.84)" font-family="Georgia, serif" font-size="22" letter-spacing="5">STATIC CHESS ANALYTICS</text>
   <text x="118" y="500" fill="#F5F4EF" font-family="Georgia, serif" font-size="70" font-weight="700">Kevin Mok</text>
   <text x="118" y="564" fill="rgba(255,255,255,0.66)" font-family="Arial, sans-serif" font-size="30">Next.js App Router, derived JSON, Elo trends, replay controls.</text>
   <defs>

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-export const SITE_NAME = "Kevin Mok PGN Analytics";
+export const SITE_NAME = "Kevin Mok Chess Analytics";
 export const SITE_DESCRIPTION =
-  "Recruiter-facing chess analytics built from a static PGN ingest pipeline, typed data transforms, and App Router UI.";
+  "Recruiter-facing chess analytics built from a static game-data pipeline, typed data transforms, and App Router UI.";
 export const SITE_OG_IMAGE = "/og-default.svg";
 
 interface MetadataOptions {

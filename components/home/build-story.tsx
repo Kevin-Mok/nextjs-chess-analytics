@@ -9,7 +9,7 @@ export function BuildStory() {
             Why this project exists
           </p>
           <h2 className="font-display text-3xl text-white">
-            A PGN export became a frontend product exercise.
+            A chess export became a frontend product exercise.
           </h2>
           <p className="text-sm leading-7 text-white/68">
             Recruiters should not need to infer engineering taste from source
@@ -35,12 +35,12 @@ export function BuildStory() {
           </h2>
           <ul className="space-y-3 text-sm leading-7 text-white/66">
             <li>
-              The PGN is parsed once into normalized JSON with rating history,
+              The source export is parsed once into normalized JSON with rating history,
               FEN timelines, opening signatures, and analytics summaries.
             </li>
             <li>
               Pages read from `lib/data.ts` only, so the UI never reaches into
-              the raw PGN or adds a runtime backend just to render charts.
+              the raw source file or adds a runtime backend just to render charts.
             </li>
             <li>
               Client components are limited to the places where interaction

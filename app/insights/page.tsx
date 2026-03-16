@@ -27,7 +27,7 @@ import { buildInsightSummary } from "@/lib/analytics";
 export const metadata = createPageMetadata({
   title: "Insights",
   description:
-    "Rating trends, streaks, activity heatmaps, and breakdowns derived from the static PGN analytics summary.",
+    "Rating trends, streaks, activity heatmaps, and breakdowns derived from the static chess analytics summary.",
 });
 
 interface InsightsPageProps {

@@ -8,7 +8,7 @@ import { createPageMetadata } from "@/lib/metadata";
 
 export const metadata = createPageMetadata({
   description:
-    "Recruiter-facing overview of a static-data PGN analytics site built with Next.js App Router, typed transforms, and focused client interactivity.",
+    "Recruiter-facing overview of a static-data chess analytics site built with Next.js App Router, typed transforms, and focused client interactivity.",
 });
 
 export default async function HomePage() {

@@ -28,7 +28,7 @@ export function HomeHero({ summary }: HomeHeroProps) {
           </div>
           <div className="space-y-5">
             <p className="text-sm uppercase tracking-[0.28em] text-white/40">
-              Static PGN analytics
+              Static chess analytics
             </p>
             <h1 className="font-display text-5xl font-semibold tracking-tight text-white sm:text-6xl">
               Typed chess analytics with product-level polish.

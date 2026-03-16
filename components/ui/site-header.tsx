@@ -16,7 +16,7 @@ export function SiteHeader() {
             Kevin Mok
           </span>
           <span className="text-[11px] uppercase tracking-[0.24em] text-amber-200/72">
-            PGN analytics site
+            Chess analytics site
           </span>
         </Link>
         <nav className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] p-1 text-sm">
