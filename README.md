@@ -10,7 +10,7 @@ Recruiter-facing chess analytics site built as a static-data Next.js App Router 
 
 ## Routes
 
-- `/`: overview, hero, KPI cluster, spotlight strip, recruiter framing, recent games
+- `/`: overview, hero, KPI cluster, spotlight strip, recruiter framing, recent games, and a recent-window ELO preview that mirrors the insights chart language
 - `/games`: searchable and filterable explorer with URL-backed params
 - `/games/[id]`: replay/detail page with move navigation and material balance
 - `/insights`: Elo trend view plus splits, streaks, heatmap, and breakdowns

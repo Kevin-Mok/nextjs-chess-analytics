@@ -11,12 +11,6 @@ interface HomeHeroProps {
 }
 
 export function HomeHero({ summary }: HomeHeroProps) {
-  const points = summary.eloSeries.slice(-18).map((point) => ({
-    sequence: point.sequence,
-    date: point.date,
-    rating: point.rating,
-  }));
-
   return (
     <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <Panel className="relative overflow-hidden p-8 sm:p-10">
@@ -77,7 +71,10 @@ export function HomeHero({ summary }: HomeHeroProps) {
           </div>
         </div>
       </Panel>
-      <HeroPreview points={points} />
+      <HeroPreview
+        points={summary.eloSeries}
+        milestones={summary.milestonePoints}
+      />
     </section>
   );
 }
