@@ -105,6 +105,14 @@ If port `3003` is already held by a process that was not started from this repo 
 - `pnpm build` uses webpack plus bundled local fonts so the production build works in a network-restricted environment.
 - Next's duplicate build-time TypeScript validation is disabled in `next.config.ts`; use `pnpm typecheck` as the authoritative type gate.
 
+## Social preview checklist
+
+- Emit `og:title`, `og:description`, `og:url`, `og:image`, `og:type`, and a canonical URL from the same shared metadata source.
+- Use absolute `https://` URLs for the canonical URL and all social images; never leak `localhost`, `http://`, or a temporary deployment host.
+- Keep the public share URL, canonical URL, and `og:url` on the same host so third-party crawlers do not have to reconcile mismatched origins.
+- Prefer stable social-card dimensions and include `og:image:width`, `og:image:height`, `og:image:alt`, and `og:image:type`.
+- If a platform keeps showing an old preview after deployment, change the image URL itself because many scrapers cache images by URL.
+
 ## Known limitations
 
 - Opening labels are heuristic signatures, not authoritative ECO classifications.
