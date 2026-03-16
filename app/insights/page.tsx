@@ -75,6 +75,7 @@ export default async function InsightsPage({
   const floorMilestone =
     summary.milestonePoints.find((point) => point.title === "Lowest point") ??
     null;
+  const hasFilteredGames = filteredGames.length > 0;
 
   return (
     <div className="space-y-6">
@@ -83,23 +84,42 @@ export default async function InsightsPage({
         title="Rating trends and pattern breakdowns."
         description="The insights route filters the derived dataset on the server, then hands a focused Elo series into client-side charting. Every other section stays static-data and reproducible."
       />
-      <InsightsFilters
-        color={color}
-        result={result}
-        timeControl={timeControlValue}
-        range={range}
-        timeControls={options.timeControls}
-      />
-      {filteredGames.length === 0 ? (
-        <Panel className="p-8 text-center text-white/58">
-          No games match the current filter set.
-        </Panel>
-      ) : (
+      <div className="grid gap-6">
+        {hasFilteredGames ? (
+          <>
+            <div data-slot="insights-filters" className="order-2 md:order-1">
+              <InsightsFilters
+                color={color}
+                result={result}
+                timeControl={timeControlValue}
+                range={range}
+                timeControls={options.timeControls}
+              />
+            </div>
+            <div data-slot="insights-chart" className="order-1 md:order-2">
+              <EloChart
+                points={summary.eloSeries}
+                milestones={summary.milestonePoints}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <InsightsFilters
+              color={color}
+              result={result}
+              timeControl={timeControlValue}
+              range={range}
+              timeControls={options.timeControls}
+            />
+            <Panel className="p-8 text-center text-white/58">
+              No games match the current filter set.
+            </Panel>
+          </>
+        )}
+      </div>
+      {hasFilteredGames ? (
         <>
-          <EloChart
-            points={summary.eloSeries}
-            milestones={summary.milestonePoints}
-          />
           <div className="grid gap-4 xl:grid-cols-3">
             <Panel className="p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/78">
@@ -250,7 +270,7 @@ export default async function InsightsPage({
             </Panel>
           </div>
         </>
-      )}
+      ) : null}
     </div>
   );
 }
