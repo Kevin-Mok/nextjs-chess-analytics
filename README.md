@@ -2,6 +2,10 @@
 
 Recruiter-facing chess analytics site built as a static-data Next.js App Router project. The UI is fed by a PGN ingest pipeline that normalizes Chess.com games into derived JSON, then renders `/`, `/games`, `/games/[id]`, and `/insights` without runtime PGN parsing or a separate backend.
 
+## Live demo
+
+- https://chess.kevin-mok.com/
+
 ## Project purpose
 
 - Turn a raw Chess.com export into a polished frontend portfolio artifact.
