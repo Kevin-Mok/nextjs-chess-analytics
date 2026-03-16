@@ -4,6 +4,11 @@ const FLAT_RATING_DOMAIN_PADDING = 8;
 const HOME_PREVIEW_WINDOW_SIZE = 18;
 const HOME_PREVIEW_MIN_DOMAIN_PADDING = 10;
 const HOME_PREVIEW_DOMAIN_PADDING_RATIO = 0.18;
+const DESKTOP_ELO_CHART_MAX_TICKS = 8;
+const MOBILE_ELO_CHART_MIN_WIDTH = 560;
+const MOBILE_ELO_CHART_MAX_WIDTH = 780;
+const MOBILE_ELO_CHART_BASE_WIDTH = 120;
+const MOBILE_ELO_CHART_WIDTH_PER_POINT = 5;
 const HOME_MILESTONE_PRIORITY = [
   "Peak rating",
   "Biggest jump",
@@ -27,6 +32,38 @@ export interface HomePreviewWindow {
   points: EloPoint[];
   domain: [number, number];
   annotations: HomePreviewAnnotation[];
+}
+
+export interface EloChartMilestoneConfig {
+  gameId: string;
+  rating: number;
+  title: string;
+  label: string | null;
+  position: "top" | "insideBottomLeft";
+}
+
+export interface EloChartConfig {
+  enableHorizontalScroll: boolean;
+  contentWidth: number | null;
+  xAxisTickCount: number;
+  yAxisWidth: number;
+  tickFontSize: number;
+  margin: {
+    top: number;
+    right: number;
+    left: number;
+    bottom: number;
+  };
+  milestoneLabelFontSize: number;
+  milestoneDotRadius: number;
+  milestones: EloChartMilestoneConfig[];
+}
+
+interface GetEloChartConfigOptions {
+  pointCount: number;
+  domain: [number, number];
+  milestones: MilestonePoint[];
+  isMobile?: boolean;
 }
 
 export function formatGameNumberTick(value: number | string): string {
@@ -69,6 +106,45 @@ export function getRatingDomain(points: EloPoint[]): [number, number] {
   }
 
   return [minRating, maxRating];
+}
+
+function getMobileEloChartWidth(pointCount: number): number {
+  return Math.max(
+    MOBILE_ELO_CHART_MIN_WIDTH,
+    Math.min(
+      MOBILE_ELO_CHART_MAX_WIDTH,
+      MOBILE_ELO_CHART_BASE_WIDTH + pointCount * MOBILE_ELO_CHART_WIDTH_PER_POINT,
+    ),
+  );
+}
+
+export function getEloChartConfig({
+  pointCount,
+  milestones,
+  isMobile = false,
+}: GetEloChartConfigOptions): EloChartConfig {
+  return {
+    enableHorizontalScroll: isMobile,
+    contentWidth: isMobile ? getMobileEloChartWidth(pointCount) : null,
+    xAxisTickCount:
+      pointCount > 1
+        ? Math.min(DESKTOP_ELO_CHART_MAX_TICKS, pointCount)
+        : 1,
+    yAxisWidth: 52,
+    tickFontSize: 11,
+    margin: isMobile
+      ? { top: 16, right: 18, left: 0, bottom: 4 }
+      : { top: 16, right: 18, left: -18, bottom: 4 },
+    milestoneLabelFontSize: 11,
+    milestoneDotRadius: 5,
+    milestones: milestones.map((milestone) => ({
+      gameId: milestone.gameId,
+      rating: milestone.rating,
+      title: milestone.title,
+      label: milestone.title,
+      position: "top",
+    })),
+  };
 }
 
 export function getHomePreviewRatingDomain(points: EloPoint[]): [number, number] {

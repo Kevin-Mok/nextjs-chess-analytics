@@ -1,7 +1,7 @@
 "use client";
 
 import type { Route } from "next";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CartesianGrid,
@@ -22,6 +22,7 @@ import { formatCompactDate, formatRating, formatTimeControlLabel } from "@/lib/f
 import {
   type ChartEloPoint,
   formatGameNumberTick,
+  getEloChartConfig,
   getRatingDomain,
   withChartGameNumbers,
 } from "@/lib/insights-chart";
@@ -30,6 +31,11 @@ import type { EloPoint, MilestonePoint } from "@/types/chess";
 interface EloChartProps {
   points: EloPoint[];
   milestones: MilestonePoint[];
+}
+
+interface LegacyMediaQueryList extends MediaQueryList {
+  addListener: (listener: (event: MediaQueryListEvent) => void) => void;
+  removeListener: (listener: (event: MediaQueryListEvent) => void) => void;
 }
 
 function getResultColor(result: EloPoint["result"]): string {
@@ -69,29 +75,75 @@ function EloTooltip({ active, payload }: TooltipContentProps) {
   );
 }
 
+function hasLegacyMediaQueryListeners(
+  mediaQuery: MediaQueryList,
+): mediaQuery is LegacyMediaQueryList {
+  return (
+    "addListener" in mediaQuery &&
+    typeof (mediaQuery as LegacyMediaQueryList).addListener === "function" &&
+    "removeListener" in mediaQuery &&
+    typeof (mediaQuery as LegacyMediaQueryList).removeListener === "function"
+  );
+}
+
+function subscribeToViewportMatch(
+  mediaQuery: MediaQueryList,
+  listener: () => void,
+): () => void {
+  const handleChange = () => listener();
+
+  if (typeof mediaQuery.addEventListener === "function") {
+    mediaQuery.addEventListener("change", handleChange);
+
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }
+
+  if (hasLegacyMediaQueryListeners(mediaQuery)) {
+    mediaQuery.addListener(handleChange);
+
+    return () => mediaQuery.removeListener(handleChange);
+  }
+
+  return () => undefined;
+}
+
 export function EloChart({ points, milestones }: EloChartProps) {
   const router = useRouter();
   const [showRollingAverage, setShowRollingAverage] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const chartPoints = withChartGameNumbers(points);
   const milestoneGameNumbers = new Map(
     chartPoints.map((point) => [point.gameId, point.gameNumber]),
   );
   const [minRating, maxRating] = getRatingDomain(points);
-  const xAxisTickCount =
-    chartPoints.length > 1 ? Math.min(8, chartPoints.length) : 1;
+  const chartConfig = getEloChartConfig({
+    pointCount: chartPoints.length,
+    domain: [minRating, maxRating],
+    milestones,
+    isMobile,
+  });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 639px)");
+    const updateMatch = () => setIsMobile(mediaQuery.matches);
+
+    updateMatch();
+
+    return subscribeToViewportMatch(mediaQuery, updateMatch);
+  }, []);
 
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+    <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-4 sm:p-6">
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/78">
             Elo by game #
           </p>
-          <p className="mt-2 text-sm text-white/58">
+          <p className="mt-2 text-xs text-white/58 sm:text-sm">
             Chronological game-number x-axis, result-colored points, rolling trendline, and milestone callouts.
           </p>
         </div>
-        <label className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/68">
+        <label className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-white/68 sm:text-sm">
           <input
             type="checkbox"
             checked={showRollingAverage}
@@ -115,92 +167,121 @@ export function EloChart({ points, milestones }: EloChartProps) {
           Draws
         </span>
       </div>
+      {chartConfig.enableHorizontalScroll ? (
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/36 sm:hidden">
+          Swipe for full chart
+        </p>
+      ) : null}
       <div className="h-[24rem]">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={chartPoints}
-            margin={{ top: 16, right: 18, left: -18, bottom: 4 }}
-            onClick={(state: MouseHandlerDataParam) => {
-              const index =
-                typeof state.activeTooltipIndex === "number"
-                  ? state.activeTooltipIndex
-                  : -1;
-              const point = index >= 0 ? chartPoints[index] : undefined;
-
-              if (point?.gameId) {
-                router.push(`/games/${point.gameId}` as Route);
-              }
-            }}
+        <div
+          className={[
+            "h-full",
+            chartConfig.enableHorizontalScroll
+              ? "overflow-x-auto overflow-y-hidden pb-2 touch-pan-x overscroll-x-contain"
+              : "",
+          ].join(" ")}
+        >
+          <div
+            className="h-full min-w-full"
+            style={
+              chartConfig.contentWidth === null
+                ? undefined
+                : { width: `${chartConfig.contentWidth}px` }
+            }
           >
-            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
-            <XAxis
-              type="number"
-              dataKey="gameNumber"
-              domain={["dataMin", "dataMax"]}
-              allowDecimals={false}
-              tickCount={xAxisTickCount}
-              tickFormatter={formatGameNumberTick}
-              tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-              tickMargin={8}
-            />
-            <YAxis
-              domain={[minRating, maxRating]}
-              allowDecimals={false}
-              tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-              tickMargin={8}
-              width={52}
-            />
-            <Tooltip
-              cursor={{ stroke: "rgba(245,204,128,0.16)" }}
-              content={(props) => <EloTooltip {...props} />}
-            />
-            <Line
-              type="monotone"
-              dataKey="rating"
-              stroke="#f5cc80"
-              strokeWidth={2.5}
-              dot={false}
-              activeDot={false}
-            />
-            {showRollingAverage ? (
-              <Line
-                type="monotone"
-                dataKey="rollingAverage"
-                stroke="rgba(255,255,255,0.45)"
-                strokeDasharray="4 6"
-                strokeWidth={1.5}
-                dot={false}
-                activeDot={false}
-                connectNulls={false}
-              />
-            ) : null}
-            <Scatter data={chartPoints} dataKey="rating">
-              {chartPoints.map((point) => (
-                <Cell key={point.gameId} fill={getResultColor(point.result)} />
-              ))}
-            </Scatter>
-            {milestones.map((milestone) => (
-              <ReferenceDot
-                key={milestone.gameId}
-                x={milestoneGameNumbers.get(milestone.gameId) ?? 0}
-                y={milestone.rating}
-                r={5}
-                fill="#f5cc80"
-                stroke="rgba(9,9,12,0.95)"
-                label={{
-                  position: "top",
-                  value: milestone.title,
-                  fill: "rgba(255,255,255,0.62)",
-                  fontSize: 11,
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                data={chartPoints}
+                margin={chartConfig.margin}
+                onClick={(state: MouseHandlerDataParam) => {
+                  const index =
+                    typeof state.activeTooltipIndex === "number"
+                      ? state.activeTooltipIndex
+                      : -1;
+                  const point = index >= 0 ? chartPoints[index] : undefined;
+
+                  if (point?.gameId) {
+                    router.push(`/games/${point.gameId}` as Route);
+                  }
                 }}
-              />
-            ))}
-          </ComposedChart>
-        </ResponsiveContainer>
+              >
+                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
+                <XAxis
+                  type="number"
+                  dataKey="gameNumber"
+                  domain={["dataMin", "dataMax"]}
+                  allowDecimals={false}
+                  tickCount={chartConfig.xAxisTickCount}
+                  tickFormatter={formatGameNumberTick}
+                  tick={{
+                    fill: "rgba(255,255,255,0.45)",
+                    fontSize: chartConfig.tickFontSize,
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={8}
+                />
+                <YAxis
+                  domain={[minRating, maxRating]}
+                  allowDecimals={false}
+                  tick={{
+                    fill: "rgba(255,255,255,0.45)",
+                    fontSize: chartConfig.tickFontSize,
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={8}
+                  width={chartConfig.yAxisWidth}
+                />
+                <Tooltip
+                  cursor={{ stroke: "rgba(245,204,128,0.16)" }}
+                  content={(props) => <EloTooltip {...props} />}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="rating"
+                  stroke="#f5cc80"
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={false}
+                />
+                {showRollingAverage ? (
+                  <Line
+                    type="monotone"
+                    dataKey="rollingAverage"
+                    stroke="rgba(255,255,255,0.45)"
+                    strokeDasharray="4 6"
+                    strokeWidth={1.5}
+                    dot={false}
+                    activeDot={false}
+                    connectNulls={false}
+                  />
+                ) : null}
+                <Scatter data={chartPoints} dataKey="rating">
+                  {chartPoints.map((point) => (
+                    <Cell key={point.gameId} fill={getResultColor(point.result)} />
+                  ))}
+                </Scatter>
+                {chartConfig.milestones.map((milestone) => (
+                  <ReferenceDot
+                    key={milestone.gameId}
+                    x={milestoneGameNumbers.get(milestone.gameId) ?? 0}
+                    y={milestone.rating}
+                    r={chartConfig.milestoneDotRadius}
+                    fill="#f5cc80"
+                    stroke="rgba(9,9,12,0.95)"
+                    label={{
+                      position: milestone.position,
+                      value: milestone.label,
+                      fill: "rgba(255,255,255,0.62)",
+                      fontSize: chartConfig.milestoneLabelFontSize,
+                    }}
+                  />
+                ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
     </div>
   );

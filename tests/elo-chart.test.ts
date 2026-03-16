@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildHomePreviewWindow,
   formatGameNumberTick,
+  getEloChartConfig,
   getHomePreviewRatingDomain,
   getRatingDomain,
   withChartGameNumbers,
@@ -131,5 +132,65 @@ describe("insights chart helpers", () => {
       "Biggest jump",
       "Current",
     ]);
+  });
+
+  it("uses a restrained horizontal-scroll width for mobile Elo chart layouts", () => {
+    const mobileConfig = getEloChartConfig({
+      pointCount: 20,
+      domain: [1188, 1246],
+      milestones: [],
+      isMobile: true,
+    });
+    const longSeriesConfig = getEloChartConfig({
+      pointCount: 119,
+      domain: [1188, 1246],
+      milestones: [],
+      isMobile: true,
+    });
+
+    expect(mobileConfig.enableHorizontalScroll).toBe(true);
+    expect(mobileConfig.contentWidth).toBe(560);
+    expect(longSeriesConfig.contentWidth).toBe(715);
+    expect(mobileConfig.margin.left).toBe(0);
+  });
+
+  it("preserves full milestone labels in the mobile scroll layout", () => {
+    const config = getEloChartConfig({
+      pointCount: 20,
+      domain: [1188, 1246],
+      isMobile: true,
+      milestones: [
+        createMilestone({ gameId: "game-1", rating: 1246, title: "Peak rating" }),
+        createMilestone({ gameId: "game-2", rating: 1188, title: "Lowest point" }),
+        createMilestone({ gameId: "game-3", rating: 1220, title: "Biggest jump" }),
+        createMilestone({ gameId: "game-4", rating: 1194, title: "Worst dip" }),
+      ],
+    });
+
+    expect(config.milestones.map((milestone) => milestone.label)).toEqual([
+      "Peak rating",
+      "Lowest point",
+      "Biggest jump",
+      "Worst dip",
+    ]);
+    expect(config.yAxisWidth).toBe(52);
+    expect(config.milestones.every((milestone) => milestone.position === "top")).toBe(true);
+  });
+
+  it("keeps desktop Elo chart layouts unscrolled", () => {
+    const config = getEloChartConfig({
+      pointCount: 20,
+      domain: [1188, 1246],
+      isMobile: false,
+      milestones: [
+        createMilestone({ gameId: "game-1", rating: 1246, title: "Peak rating" }),
+        createMilestone({ gameId: "game-2", rating: 1188, title: "Lowest point" }),
+      ],
+    });
+
+    expect(config.enableHorizontalScroll).toBe(false);
+    expect(config.contentWidth).toBeNull();
+    expect(config.margin.left).toBe(-18);
+    expect(config.yAxisWidth).toBe(52);
   });
 });
