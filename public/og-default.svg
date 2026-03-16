@@ -1,0 +1,41 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#09090C"/>
+  <rect x="34" y="34" width="1132" height="562" rx="28" fill="url(#paint0_linear_181_3)" stroke="rgba(255,255,255,0.12)"/>
+  <g opacity="0.25">
+    <path d="M64 134H1136" stroke="rgba(255,255,255,0.06)"/>
+    <path d="M64 204H1136" stroke="rgba(255,255,255,0.06)"/>
+    <path d="M64 274H1136" stroke="rgba(255,255,255,0.06)"/>
+    <path d="M64 344H1136" stroke="rgba(255,255,255,0.06)"/>
+    <path d="M64 414H1136" stroke="rgba(255,255,255,0.06)"/>
+    <path d="M64 484H1136" stroke="rgba(255,255,255,0.06)"/>
+    <path d="M64 554H1136" stroke="rgba(255,255,255,0.06)"/>
+  </g>
+  <circle cx="930" cy="132" r="158" fill="rgba(245,204,128,0.12)"/>
+  <circle cx="1114" cy="498" r="184" fill="rgba(186,169,121,0.08)"/>
+  <path d="M664 420C742 364 786 338 840 328C906 316 940 334 1014 274C1068 231 1103 176 1132 122" stroke="#F5CC80" stroke-width="8" stroke-linecap="round"/>
+  <path d="M664 420C742 364 786 338 840 328C906 316 940 334 1014 274C1068 231 1103 176 1132 122" stroke="url(#paint1_linear_181_3)" stroke-width="24" stroke-linecap="round" opacity="0.16"/>
+  <circle cx="840" cy="328" r="10" fill="#F5CC80"/>
+  <circle cx="1014" cy="274" r="10" fill="#F5CC80"/>
+  <rect x="118" y="120" width="360" height="226" rx="28" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)"/>
+  <rect x="146" y="146" width="60" height="60" rx="12" fill="rgba(255,255,255,0.08)"/>
+  <rect x="208" y="146" width="60" height="60" rx="12" fill="rgba(245,204,128,0.12)"/>
+  <rect x="270" y="146" width="60" height="60" rx="12" fill="rgba(255,255,255,0.08)"/>
+  <rect x="332" y="146" width="60" height="60" rx="12" fill="rgba(245,204,128,0.12)"/>
+  <rect x="146" y="208" width="60" height="60" rx="12" fill="rgba(245,204,128,0.12)"/>
+  <rect x="208" y="208" width="60" height="60" rx="12" fill="rgba(255,255,255,0.08)"/>
+  <rect x="270" y="208" width="60" height="60" rx="12" fill="rgba(245,204,128,0.12)"/>
+  <rect x="332" y="208" width="60" height="60" rx="12" fill="rgba(255,255,255,0.08)"/>
+  <text x="118" y="430" fill="rgba(245,204,128,0.84)" font-family="Georgia, serif" font-size="22" letter-spacing="5">STATIC PGN ANALYTICS</text>
+  <text x="118" y="500" fill="#F5F4EF" font-family="Georgia, serif" font-size="70" font-weight="700">Kevin Mok</text>
+  <text x="118" y="564" fill="rgba(255,255,255,0.66)" font-family="Arial, sans-serif" font-size="30">Next.js App Router, derived JSON, Elo trends, replay controls.</text>
+  <defs>
+    <linearGradient id="paint0_linear_181_3" x1="84" y1="30" x2="1140" y2="590" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12141D"/>
+      <stop offset="1" stop-color="#0B0C11"/>
+    </linearGradient>
+    <linearGradient id="paint1_linear_181_3" x1="664" y1="420" x2="1132" y2="122" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5CC80"/>
+      <stop offset="1" stop-color="#F9E1A9"/>
+    </linearGradient>
+  </defs>
+</svg>
