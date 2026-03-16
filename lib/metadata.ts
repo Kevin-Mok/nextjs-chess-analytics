@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-export const SITE_NAME = "Kevin Mok Chess Analytics";
+export const SITE_NAME = "Kevin Mok's Chess Analytics";
 export const SITE_DESCRIPTION =
-  "Recruiter-facing chess analytics built from a static game-data pipeline, typed data transforms, and App Router UI.";
+  "Next.js App Router chess analytics project using TypeScript, Recharts, and interactive replay UI to showcase Kevin Mok's frontend engineering.";
 export const SITE_OG_IMAGE = "/og-default.svg";
 
 interface MetadataOptions {
