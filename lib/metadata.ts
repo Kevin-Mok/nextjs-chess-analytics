@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 export const SITE_NAME = "Kevin Mok's Chess Analytics";
 export const SITE_DESCRIPTION =
   "Next.js App Router chess analytics project using TypeScript, Recharts, and interactive replay UI to showcase Kevin Mok's frontend engineering.";
+export const SITE_URL = "https://chess.kevin-mok.com";
 export const SITE_OG_IMAGE = "/og-image.jpg";
 
 interface MetadataOptions {
@@ -19,6 +20,7 @@ export function createPageMetadata(
   return {
     title,
     description,
+    metadataBase: new URL(SITE_URL),
     icons: {
       icon: "/favicon.svg",
       shortcut: "/favicon.svg",
