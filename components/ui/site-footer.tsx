@@ -17,11 +17,11 @@ export function SiteFooter() {
           <Link href="/" className="hover:text-white">
             Overview
           </Link>
-          <Link href="/games" className="hover:text-white">
-            Games
-          </Link>
           <Link href="/insights" className="hover:text-white">
             Insights
+          </Link>
+          <Link href="/games" className="hover:text-white">
+            Games
           </Link>
         </div>
       </div>
