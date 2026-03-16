@@ -56,6 +56,30 @@ stop_pid() {
   fi
 }
 
+stop_existing_site_runners() {
+  local excluded_pid="${1:-}"
+
+  if ! command -v pgrep >/dev/null 2>&1; then
+    return 0
+  fi
+
+  while IFS= read -r process_info; do
+    local runner_pid="${process_info%% *}"
+    local runner_cwd=""
+
+    [[ -z "$runner_pid" ]] && continue
+    [[ "$runner_pid" == "$$" ]] && continue
+    [[ -n "$excluded_pid" && "$runner_pid" == "$excluded_pid" ]] && continue
+
+    runner_cwd="$(readlink "/proc/$runner_pid/cwd" 2>/dev/null || true)"
+
+    if [[ "$runner_cwd" == "$ROOT_DIR" ]]; then
+      log "Stopping existing site runner from $ROOT_DIR (PID $runner_pid)"
+      stop_pid "$runner_pid"
+    fi
+  done < <(pgrep -af 'pnpm start|pnpm exec next start|next start' || true)
+}
+
 stop_managed_process() {
   local managed_pid=""
 
@@ -68,6 +92,8 @@ stop_managed_process() {
 
     rm -f "$PID_FILE"
   fi
+
+  stop_existing_site_runners "$managed_pid"
 
   if ! command -v lsof >/dev/null 2>&1; then
     return 0
@@ -115,7 +141,7 @@ main() {
 
   printf '\n[%s] restarting live site\n' "$(timestamp)" >>"$APP_LOG_FILE"
   log "Starting live site on http://$HOST:$PORT"
-  nohup pnpm start -- --hostname "$HOST" --port "$PORT" >>"$APP_LOG_FILE" 2>&1 &
+  nohup pnpm exec next start --hostname "$HOST" --port "$PORT" >>"$APP_LOG_FILE" 2>&1 &
   local app_pid="$!"
   echo "$app_pid" >"$PID_FILE"
 

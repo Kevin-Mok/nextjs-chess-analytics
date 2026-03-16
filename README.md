@@ -79,7 +79,8 @@ What it does:
 - Refuses to deploy from a dirty git checkout.
 - Uses `git pull --ff-only` to avoid merge commits on the server.
 - Runs `pnpm install --frozen-lockfile` before `pnpm run build`.
-- Restarts the live server with `nohup pnpm start -- --hostname 127.0.0.1 --port 3003`.
+- Stops existing repo-local `pnpm start` / `pnpm exec next start` runners before restarting.
+- Restarts the live server with `nohup pnpm exec next start --hostname 127.0.0.1 --port 3003`.
 - Writes the managed PID to `log/live-site.pid` and app output to `log/live-site.log`.
 
 If port `3003` is already held by a process that was not started from this repo checkout, the script refuses to kill it and exits with a clear error so it does not take down an unrelated service.
