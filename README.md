@@ -68,7 +68,7 @@ pnpm dev
 
 ## Live site update script
 
-Run [`scripts/update-live-site.sh`](/home/kevin/coding/chess-site/scripts/update-live-site.sh) on the production checkout to pull the latest code, install locked dependencies, rebuild the app, and restart the server on `127.0.0.1:3003`.
+Run [`scripts/update-live-site.sh`](/home/kevin/chess/scripts/update-live-site.sh) on the production checkout to pull the latest code, install locked dependencies, rebuild the app, and restart the server on `127.0.0.1:3003`.
 
 ```bash
 ./scripts/update-live-site.sh
@@ -79,11 +79,19 @@ What it does:
 - Refuses to deploy from a dirty git checkout.
 - Uses `git pull --ff-only` to avoid merge commits on the server.
 - Runs `pnpm install --frozen-lockfile` before `pnpm run build`.
-- Stops existing repo-local `pnpm start` / `pnpm exec next start` runners before restarting.
+- Stops existing repo-local `pnpm start` / `pnpm exec next start` runners before restarting, including their child processes.
 - Restarts the live server with `nohup pnpm exec next start --hostname 127.0.0.1 --port 3003`.
 - Writes the managed PID to `log/live-site.pid` and app output to `log/live-site.log`.
 
 If port `3003` is already held by a process that was not started from this repo checkout, the script refuses to kill it and exits with a clear error so it does not take down an unrelated service.
+
+For manual production starts, use the normal package script:
+
+```bash
+pnpm start -- --hostname 127.0.0.1 --port 3003
+```
+
+The repo wraps `next start` so pnpm's forwarded `--` delimiter does not get misinterpreted as a project directory.
 
 ## Architecture summary
 

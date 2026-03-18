@@ -30,11 +30,33 @@ require_command() {
   fi
 }
 
+collect_descendant_pids() {
+  local pid="$1"
+  local child_pid=""
+
+  if ! command -v pgrep >/dev/null 2>&1; then
+    return 0
+  fi
+
+  while IFS= read -r child_pid; do
+    [[ -z "$child_pid" ]] && continue
+    collect_descendant_pids "$child_pid"
+    printf '%s\n' "$child_pid"
+  done < <(pgrep -P "$pid" || true)
+}
+
 wait_for_exit() {
   local pid="$1"
   local attempts=20
+  local process_state=""
 
   while kill -0 "$pid" 2>/dev/null; do
+    process_state="$(ps -o stat= -p "$pid" 2>/dev/null | tr -d '[:space:]')"
+
+    if [[ "$process_state" == Z* ]]; then
+      return 0
+    fi
+
     if (( attempts == 0 )); then
       log "Process $pid did not stop in time; sending SIGKILL."
       kill -9 "$pid" 2>/dev/null || true
@@ -48,12 +70,30 @@ wait_for_exit() {
 
 stop_pid() {
   local pid="$1"
+  local descendant_pid=""
+  local descendants=()
 
-  if kill -0 "$pid" 2>/dev/null; then
-    log "Stopping process $pid"
-    kill "$pid"
-    wait_for_exit "$pid"
+  if ! kill -0 "$pid" 2>/dev/null; then
+    return 0
   fi
+
+  while IFS= read -r descendant_pid; do
+    [[ -z "$descendant_pid" ]] && continue
+    descendants+=("$descendant_pid")
+  done < <(collect_descendant_pids "$pid")
+
+  if (( ${#descendants[@]} > 0 )); then
+    log "Stopping child processes of $pid: ${descendants[*]}"
+    kill "${descendants[@]}" 2>/dev/null || true
+  fi
+
+  log "Stopping process $pid"
+  kill "$pid" 2>/dev/null || true
+  wait_for_exit "$pid"
+
+  for descendant_pid in "${descendants[@]}"; do
+    wait_for_exit "$descendant_pid"
+  done
 }
 
 stop_existing_site_runners() {
@@ -77,7 +117,7 @@ stop_existing_site_runners() {
       log "Stopping existing site runner from $ROOT_DIR (PID $runner_pid)"
       stop_pid "$runner_pid"
     fi
-  done < <(pgrep -af 'pnpm start|pnpm exec next start|next start' || true)
+  done < <(pgrep -af 'pnpm start|pnpm exec next start|next start|start-next.sh' || true)
 }
 
 stop_managed_process() {
@@ -158,4 +198,6 @@ main() {
   log "Server output is being written to $APP_LOG_FILE"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi
