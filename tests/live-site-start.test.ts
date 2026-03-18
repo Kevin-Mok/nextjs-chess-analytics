@@ -201,4 +201,57 @@ describe("live site start helpers", () => {
     await waitForProcessExit(holder);
     managedProcesses.delete(holderPid);
   });
+
+  it("rejects overlapping runtime starts that share the same host and port lock", async () => {
+    const lockFile = join(tmpdir(), `chess-start-${process.pid}-${Date.now()}.lock`);
+    const holder = spawn(
+      "pnpm",
+      ["start", "--", "--hostname", "127.0.0.1", "--port", "3003"],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          CHESS_START_NEXT_DRY_RUN: "1",
+          CHESS_START_NEXT_WAIT_FOR_STDIN: "1",
+          CHESS_START_NEXT_LOCK_FILE: lockFile,
+        },
+        stdio: ["pipe", "pipe", "inherit"],
+      },
+    );
+
+    const holderPid = holder.pid;
+    expect(holderPid).toBeTypeOf("number");
+    managedProcesses.add(holderPid);
+
+    const holderStdout = holder.stdout;
+    if (holderStdout === null) {
+      throw new Error("Expected the runtime lock holder to expose stdout");
+    }
+
+    const holderChunk = await readSingleChunk(holderStdout);
+    expect(holderChunk.toString("utf8")).toContain("next start <--hostname> <127.0.0.1> <--port> <3003>");
+
+    const contender = spawnSync(
+      "pnpm",
+      ["start", "--", "--hostname", "127.0.0.1", "--port", "3003"],
+      {
+        cwd: repoRoot,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CHESS_START_NEXT_DRY_RUN: "1",
+          CHESS_START_NEXT_LOCK_FILE: lockFile,
+        },
+      },
+    );
+
+    expect(contender.status).toBe(1);
+    expect(`${contender.stdout}${contender.stderr}`).toContain(
+      "Another site process is already holding",
+    );
+
+    holder.stdin?.write("release\n");
+    await waitForProcessExit(holder);
+    managedProcesses.delete(holderPid);
+  });
 });

@@ -247,7 +247,7 @@ main() {
 
   printf '\n[%s] restarting live site\n' "$(timestamp)" >>"$APP_LOG_FILE"
   log "Starting live site on http://$HOST:$PORT"
-  nohup pnpm exec next start --hostname "$HOST" --port "$PORT" >>"$APP_LOG_FILE" 2>&1 &
+  nohup pnpm start -- --hostname "$HOST" --port "$PORT" >>"$APP_LOG_FILE" 2>&1 &
   local app_pid="$!"
   echo "$app_pid" >"$PID_FILE"
 

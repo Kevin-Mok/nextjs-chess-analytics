@@ -81,7 +81,7 @@ What it does:
 - Uses `git pull --ff-only` to avoid merge commits on the server.
 - Runs `pnpm install --frozen-lockfile` before `pnpm run build`.
 - Stops existing repo-local `pnpm start` / `pnpm exec next start` runners before restarting, including their child processes.
-- Restarts the live server with `nohup pnpm exec next start --hostname 127.0.0.1 --port 3003`.
+- Restarts the live server with `nohup pnpm start -- --hostname 127.0.0.1 --port 3003`.
 - Writes the managed PID to `log/live-site.pid` and app output to `log/live-site.log`.
 
 If port `3003` is already held by a process that was not started from this repo checkout, the script refuses to kill it and exits with a clear error so it does not take down an unrelated service.
@@ -93,6 +93,7 @@ pnpm start -- --hostname 127.0.0.1 --port 3003
 ```
 
 The repo wraps `next start` so pnpm's forwarded `--` delimiter does not get misinterpreted as a project directory.
+That wrapper also holds a host/port runtime lock under `/tmp`, so overlapping `pnpm start` launches fail before they can race into `EADDRINUSE`.
 
 ## Architecture summary
 
