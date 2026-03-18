@@ -1,5 +1,8 @@
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
+import { mkdtempSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -135,5 +138,67 @@ describe("live site start helpers", () => {
 
     managedProcesses.delete(parentPid);
     managedProcesses.delete(childPid);
+  });
+
+  it("rejects overlapping live-site update runs", async () => {
+    const logDir = mkdtempSync(join(tmpdir(), "chess-live-site-lock-"));
+    const holder = spawn(
+      "bash",
+      [
+        "-lc",
+        [
+          "source scripts/update-live-site.sh",
+          `LOG_DIR="${logDir}"`,
+          'LOCK_FILE="$LOG_DIR/live-site.lock"',
+          'mkdir -p "$LOG_DIR"',
+          "acquire_update_lock",
+          "echo locked",
+          "read -r _",
+        ].join("; "),
+      ],
+      {
+        cwd: repoRoot,
+        stdio: ["pipe", "pipe", "inherit"],
+      },
+    );
+
+    const holderPid = holder.pid;
+    expect(holderPid).toBeTypeOf("number");
+    managedProcesses.add(holderPid);
+
+    const holderStdout = holder.stdout;
+    if (holderStdout === null) {
+      throw new Error("Expected the lock holder process to expose stdout");
+    }
+
+    const lockChunk = await readSingleChunk(holderStdout);
+    expect(lockChunk.toString("utf8")).toContain("locked");
+
+    const contender = spawnSync(
+      "bash",
+      [
+        "-lc",
+        [
+          "source scripts/update-live-site.sh",
+          `LOG_DIR="${logDir}"`,
+          'LOCK_FILE="$LOG_DIR/live-site.lock"',
+          'mkdir -p "$LOG_DIR"',
+          "acquire_update_lock",
+        ].join("; "),
+      ],
+      {
+        cwd: repoRoot,
+        encoding: "utf8",
+      },
+    );
+
+    expect(contender.status).toBe(1);
+    expect(`${contender.stdout}${contender.stderr}`).toContain(
+      "Another live-site update is already running",
+    );
+
+    holder.stdin?.write("release\n");
+    await waitForProcessExit(holder);
+    managedProcesses.delete(holderPid);
   });
 });

@@ -77,6 +77,7 @@ Run [`scripts/update-live-site.sh`](/home/kevin/chess/scripts/update-live-site.s
 What it does:
 
 - Refuses to deploy from a dirty git checkout.
+- Acquires `log/live-site.lock` so overlapping restart runs fail fast instead of racing each other.
 - Uses `git pull --ff-only` to avoid merge commits on the server.
 - Runs `pnpm install --frozen-lockfile` before `pnpm run build`.
 - Stops existing repo-local `pnpm start` / `pnpm exec next start` runners before restarting, including their child processes.

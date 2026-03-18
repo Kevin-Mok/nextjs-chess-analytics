@@ -7,7 +7,9 @@ PORT="${PORT:-3003}"
 LOG_DIR="$ROOT_DIR/log"
 APP_LOG_FILE="$LOG_DIR/live-site.log"
 PID_FILE="$LOG_DIR/live-site.pid"
+LOCK_FILE="$LOG_DIR/live-site.lock"
 STARTUP_WAIT_SECONDS="${STARTUP_WAIT_SECONDS:-3}"
+LOCK_FD=""
 
 timestamp() {
   date "+%Y-%m-%d %H:%M:%S"
@@ -27,6 +29,20 @@ require_command() {
 
   if ! command -v "$command_name" >/dev/null 2>&1; then
     fail "Missing required command: $command_name"
+  fi
+}
+
+acquire_update_lock() {
+  if [[ -n "$LOCK_FD" ]]; then
+    return 0
+  fi
+
+  require_command flock
+
+  exec {LOCK_FD}> "$LOCK_FILE"
+
+  if ! flock -n "$LOCK_FD"; then
+    fail "Another live-site update is already running. Wait for it to finish before retrying."
   fi
 }
 
@@ -93,6 +109,54 @@ stop_pid() {
 
   for descendant_pid in "${descendants[@]}"; do
     wait_for_exit "$descendant_pid"
+  done
+}
+
+log_port_listeners() {
+  local listener_pid=""
+  local listener_cwd=""
+
+  if ! command -v lsof >/dev/null 2>&1; then
+    return 0
+  fi
+
+  while IFS= read -r listener_pid; do
+    [[ -z "$listener_pid" ]] && continue
+
+    log "Port $PORT listener PID $listener_pid"
+    ps -fp "$listener_pid" || true
+
+    listener_cwd="$(readlink "/proc/$listener_pid/cwd" 2>/dev/null || true)"
+
+    if [[ -n "$listener_cwd" ]]; then
+      log "PID $listener_pid cwd: $listener_cwd"
+    fi
+  done < <(lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true)
+}
+
+wait_for_port_to_clear() {
+  local attempts=20
+  local listener_pid=""
+
+  if ! command -v lsof >/dev/null 2>&1; then
+    return 0
+  fi
+
+  while true; do
+    listener_pid="$(lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | head -n 1 || true)"
+
+    if [[ -z "$listener_pid" ]]; then
+      return 0
+    fi
+
+    if (( attempts == 0 )); then
+      log "Port $PORT still has active listeners after shutdown."
+      log_port_listeners
+      fail "Port $PORT did not clear in time."
+    fi
+
+    attempts=$((attempts - 1))
+    sleep 0.5
   done
 }
 
@@ -163,6 +227,7 @@ main() {
 
   mkdir -p "$LOG_DIR"
   cd "$ROOT_DIR"
+  acquire_update_lock
 
   if ! git diff --quiet --ignore-submodules -- || ! git diff --cached --quiet --ignore-submodules --; then
     fail "Working tree is dirty. Commit or stash local changes before updating the live site."
@@ -178,6 +243,7 @@ main() {
   pnpm run build
 
   stop_managed_process
+  wait_for_port_to_clear
 
   printf '\n[%s] restarting live site\n' "$(timestamp)" >>"$APP_LOG_FILE"
   log "Starting live site on http://$HOST:$PORT"
@@ -191,6 +257,7 @@ main() {
     rm -f "$PID_FILE"
     log "Live site failed to stay up. Recent log output:"
     tail -n 40 "$APP_LOG_FILE" || true
+    log_port_listeners
     exit 1
   fi
 
