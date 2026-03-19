@@ -175,6 +175,10 @@ function inferHighlightTitle(opponent: string, whyItMatters: string): string {
     return `80% accuracy win vs ${opponent}`;
   }
 
+  if (normalized.includes("clean mate finish")) {
+    return `Clean mate vs ${opponent}`;
+  }
+
   return `Highlight vs ${opponent}`;
 }
 
@@ -215,6 +219,10 @@ function inferHighlightDescriptor(whyItMatters: string): string {
 
   if (normalized.includes("80% accuracy")) {
     return "80-accuracy";
+  }
+
+  if (normalized.includes("clean mate finish")) {
+    return "clean-mate";
   }
 
   return "highlight";

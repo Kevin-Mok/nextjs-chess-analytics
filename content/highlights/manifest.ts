@@ -117,5 +117,18 @@ export const HIGHLIGHT_SPECS: HighlightSpec[] = [
         "href": "https://www.chess.com/game/live/166077521478"
       }
     ]
+  },
+  {
+    "slug": "2026-03-19-sozplayschess05-clean-mate",
+    "title": "Clean mate vs sozplayschess05",
+    "platform": "Chess.com",
+    "resultLabel": "Win (Black, 0-1)",
+    "whyItMatters": "Clean mate finish where `21. Qf4` allowed `21...Qd2#` immediately.",
+    "links": [
+      {
+        "label": "Chess.com game",
+        "href": "https://www.chess.com/game/live/166156046882"
+      }
+    ]
   }
 ];
