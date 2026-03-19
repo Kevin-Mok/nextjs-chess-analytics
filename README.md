@@ -1,6 +1,6 @@
 # Kevin Mok's Chess Analytics
 
-Recruiter-facing chess analytics site built as a static-data Next.js App Router project. The UI is fed by a PGN ingest pipeline that normalizes Chess.com games into derived JSON, then renders `/`, `/games`, `/games/[id]`, and `/insights` without runtime PGN parsing or a separate backend.
+Recruiter-facing chess analytics site built as a static-data Next.js App Router project. The UI is fed by a PGN ingest pipeline that normalizes Chess.com games into derived JSON, then renders `/`, `/highlights`, `/games`, `/games/[id]`, and `/insights` without runtime PGN parsing or a separate backend.
 
 ## Live demo
 
@@ -14,10 +14,12 @@ Recruiter-facing chess analytics site built as a static-data Next.js App Router 
 
 ## Routes
 
-- `/`: overview, hero, KPI cluster, spotlight strip, recruiter framing, recent games, and a recent-window ELO preview that mirrors the insights chart language
-- `/games`: searchable and filterable explorer with URL-backed params
+- `/`: overview, hero, KPI cluster, spotlight strip, recruiter framing, Highlight Games, recent games, and a recent-window ELO preview that mirrors the Elo Over Time chart language
+- `/highlights`: Highlight Games index driven by repo-local PGN/analysis snapshots
+- `/highlights/[slug]`: replay/detail page for each Highlight Game
+- `/games`: searchable and filterable All Games view with URL-backed params
 - `/games/[id]`: replay/detail page with move navigation and material balance
-- `/insights`: Elo trend view plus splits, streaks, heatmap, and breakdowns, with a horizontally scrollable mobile chart that preserves comfortable spacing and leads the filter stack on phones
+- `/insights`: Elo Over Time view plus splits, streaks, heatmap, and breakdowns, with a horizontally scrollable mobile chart that preserves comfortable spacing and leads the filter stack on phones
 
 ## Stack
 
@@ -45,20 +47,27 @@ The ingest pipeline preserves the source username where needed for parsing, then
 ## Ingest and rebuild workflow
 
 1. Raw PGN is parsed by [`scripts/ingest-pgn.ts`](/home/kevin/coding/chess-site/scripts/ingest-pgn.ts).
-2. Parsing and normalization live in [`lib/pgn.ts`](/home/kevin/coding/chess-site/lib/pgn.ts).
-3. Summary analytics live in [`lib/analytics.ts`](/home/kevin/coding/chess-site/lib/analytics.ts).
-4. Derived JSON is written to `data/derived/`:
+2. Curated Highlight Games can be refreshed from the external chess workspace with [`scripts/ingest-highlights.ts`](/home/kevin/coding/chess-site/scripts/ingest-highlights.ts).
+3. Highlight Game source snapshots are stored under `content/highlights/` after ingest.
+4. Parsing and normalization live in [`lib/pgn.ts`](/home/kevin/coding/chess-site/lib/pgn.ts).
+5. Highlight Game README parsing, manifest generation, and markdown excerpt parsing live in [`lib/highlights.ts`](/home/kevin/coding/chess-site/lib/highlights.ts).
+6. Summary analytics live in [`lib/analytics.ts`](/home/kevin/coding/chess-site/lib/analytics.ts).
+7. Derived JSON is written to `data/derived/`:
    - `games.json`
    - `summary.json`
    - `openings.json`
-5. Pages load only through [`lib/data.ts`](/home/kevin/coding/chess-site/lib/data.ts).
+   - `highlights.json`
+8. Pages load only through [`lib/data.ts`](/home/kevin/coding/chess-site/lib/data.ts).
 
 `data/derived/` is ignored from source control and should be rebuilt from the canonical PGN when the export changes.
+
+`pnpm ingest:highlights` reads `/home/kevin/Documents/chess/README.md` by default, matches the Highlight Game rows to PGNs under `/home/kevin/Documents/chess/games` plus analysis markdown under `/home/kevin/Documents/chess/analysis`, updates `content/highlights/`, and rewrites `data/derived/highlights.json`. Set `CHESS_HIGHLIGHTS_ROOT` if the external chess workspace lives elsewhere.
 
 ## Local commands
 
 ```bash
 pnpm ingest:pgn
+pnpm ingest:highlights
 pnpm test
 pnpm typecheck
 pnpm lint
@@ -127,7 +136,7 @@ That wrapper also holds a host/port runtime lock under `/tmp`, so overlapping `p
 
 - Opening labels are heuristic signatures, not authoritative ECO classifications.
 - There is no engine evaluation, annotation, or move-quality scoring.
-- `/games` and `/insights` are query-param driven and server-render filtered, so they are not pre-rendered for every filter combination.
+- `/games` (All Games) and `/insights` (Elo Over Time) are query-param driven and server-render filtered, so they are not pre-rendered for every filter combination.
 - The current dataset is small enough to keep the UI simple; no virtualization or export flows are included.
 
 ## Future enhancements

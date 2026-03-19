@@ -26,8 +26,8 @@ What the site is:
 What the site shows:
 
 - A homepage framed around “typed chess analytics with product-level polish.”
-- An insights dashboard focused on Elo/rating trends, streaks, activity heatmaps, white-vs-black splits, time-control breakdowns, and opening highlights.
-- A games explorer for searching and filtering the normalized match log.
+- An Elo Over Time dashboard focused on Elo/rating trends, streaks, activity heatmaps, white-vs-black splits, time-control breakdowns, and opening highlights.
+- An All Games explorer for searching and filtering the normalized match log.
 - A game-detail experience with board replay, move list, progression by ply, and a material-balance chart.
 
 What the image should communicate first:
@@ -86,7 +86,7 @@ Text to render clearly and legibly:
 
 - Main title: **Kevin Mok's Chess Analytics**
 - Supporting line: **Next.js, TypeScript, Recharts, and interactive replay UI**
-- CTA chip or button: **Explore insights**
+- CTA chip or button: **Explore Elo Over Time**
 
 Optional small supporting detail if space allows:
 
@@ -114,7 +114,7 @@ Overall result:
 
 ## Cleaner Backup Variant
 
-Create a **1200x630** social card for **Kevin Mok's Chess Analytics** with a premium dark analytics aesthetic. Use the attached `prompts/assets/rating-history-insight-preview.png` as the hero reference and reinterpret it into a cleaner, more polished insight-preview card. Keep the amber line, green/pink/gray result markers, dashed rolling-average overlay, and a few milestone callouts, but simplify tiny labels when needed. Include the text **Kevin Mok's Chess Analytics**, **Gameplay trends, product thinking, and polished frontend execution**, and a subtle CTA pill reading **Explore insights**. Add only minimal chess texture, such as a faint board-grid fragment. Keep the design editorial, spacious, and luxury-product oriented rather than dense or literal.
+Create a **1200x630** social card for **Kevin Mok's Chess Analytics** with a premium dark analytics aesthetic. Use the attached `prompts/assets/rating-history-insight-preview.png` as the hero reference and reinterpret it into a cleaner, more polished Elo-over-time preview card. Keep the amber line, green/pink/gray result markers, dashed rolling-average overlay, and a few milestone callouts, but simplify tiny labels when needed. Include the text **Kevin Mok's Chess Analytics**, **Gameplay trends, product thinking, and polished frontend execution**, and a subtle CTA pill reading **Explore Elo Over Time**. Add only minimal chess texture, such as a faint board-grid fragment. Keep the design editorial, spacious, and luxury-product oriented rather than dense or literal.
 
 ## Negative Constraints
 

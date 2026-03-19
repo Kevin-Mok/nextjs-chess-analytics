@@ -176,7 +176,7 @@ export function HeroPreview({ points, milestones = [] }: HeroPreviewProps) {
                 Elo preview
               </p>
               <p className="max-w-md text-sm leading-6 text-white/64">
-                The latest {recentPoints.length}-game slice from the full rating arc, with live momentum, result-coded swings, and the same chart language as insights.
+                The latest {recentPoints.length}-game slice from the full rating arc, with live momentum, result-coded swings, and the same chart language as Elo Over Time.
               </p>
             </div>
           </div>

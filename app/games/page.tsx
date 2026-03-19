@@ -15,9 +15,10 @@ import { getGames } from "@/lib/data";
 import { createPageMetadata } from "@/lib/metadata";
 
 export const metadata = createPageMetadata({
-  title: "Games Explorer",
+  title: "All Games",
   description:
     "Search, filter, sort, and page through the normalized Chess.com dataset without runtime parsing of the original export.",
+  pathname: "/games",
 });
 
 interface GamesPageProps {
@@ -71,9 +72,9 @@ export default async function GamesPage({ searchParams }: GamesPageProps) {
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="Games explorer"
-        title="Explore the normalized game log."
-        description="The explorer is server-rendered from derived JSON, with URL-backed search params for search, result splits, time controls, sort order, and pagination."
+        eyebrow="All Games"
+        title="Explore the full normalized game log."
+        description="The All Games view is server-rendered from derived JSON, with URL-backed search params for search, result splits, time controls, sort order, and pagination."
       />
       <GamesFilters
         key={[query, color, result, timeControlValue, sort].join("|")}

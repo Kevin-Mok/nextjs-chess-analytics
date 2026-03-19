@@ -11,6 +11,7 @@ export const SITE_OG_IMAGE_TYPE = "image/jpeg";
 interface MetadataOptions {
   title?: string;
   description?: string;
+  pathname?: string;
 }
 
 export function createPageMetadata(
@@ -18,13 +19,17 @@ export function createPageMetadata(
 ): Metadata {
   const title = options.title ?? SITE_NAME;
   const description = options.description ?? SITE_DESCRIPTION;
+  const canonicalUrl =
+    !options.pathname || options.pathname === "/"
+      ? SITE_URL
+      : new URL(options.pathname, SITE_URL).toString();
 
   return {
     title,
     description,
     metadataBase: new URL(SITE_URL),
     alternates: {
-      canonical: SITE_URL,
+      canonical: canonicalUrl,
     },
     icons: {
       icon: "/favicon.svg",
@@ -34,7 +39,7 @@ export function createPageMetadata(
     openGraph: {
       title,
       description,
-      url: SITE_URL,
+      url: canonicalUrl,
       siteName: SITE_NAME,
       locale: SITE_LOCALE,
       type: "website",

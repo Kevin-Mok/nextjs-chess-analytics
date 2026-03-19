@@ -25,9 +25,10 @@ import { formatPercent } from "@/lib/utils";
 import { buildInsightSummary } from "@/lib/analytics";
 
 export const metadata = createPageMetadata({
-  title: "Insights",
+  title: "Elo Over Time",
   description:
-    "Rating trends, streaks, activity heatmaps, and breakdowns derived from the static chess analytics summary.",
+    "Elo Over Time trends, streaks, activity heatmaps, and breakdowns derived from the static chess analytics summary.",
+  pathname: "/insights",
 });
 
 interface InsightsPageProps {
@@ -80,9 +81,9 @@ export default async function InsightsPage({
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="Insights dashboard"
+        eyebrow="Elo Over Time"
         title="Rating trends and pattern breakdowns."
-        description="The insights route filters the derived dataset on the server, then hands a focused Elo series into client-side charting. Every other section stays static-data and reproducible."
+        description="The Elo Over Time route filters the derived dataset on the server, then hands a focused Elo series into client-side charting. Every other section stays static-data and reproducible."
       />
       <div className="grid gap-6">
         {hasFilteredGames ? (

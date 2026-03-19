@@ -29,7 +29,7 @@ export function RecentGamesPreview({ games }: RecentGamesPreviewProps) {
           </h2>
         </div>
         <Link href="/games" className="text-sm text-white/62 hover:text-white">
-          View full explorer
+          View All Games
         </Link>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
