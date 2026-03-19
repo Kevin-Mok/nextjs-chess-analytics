@@ -101,9 +101,9 @@ Create a multi-section experience with a strong landing page and supporting view
 At minimum:
 
 * `/` → premium landing page / overview
-* `/games` → searchable, filterable game explorer
+* `/games` → searchable, filterable All Games explorer
 * `/games/[id]` or modal/detail route → full game detail + replay
-* `/insights` → deeper stats / trends / breakdowns
+* `/insights` → Elo Over Time view with deeper stats / trends / breakdowns
 
 Optional:
 
@@ -121,7 +121,7 @@ Create a genuinely impressive landing hero with:
 * key stats card cluster
 * highlighted current / peak rating
 * short “why this project exists” copy
-* CTA buttons into Insights and Games
+* CTA buttons into Elo Over Time and All Games
 * subtle background motion/parallax
 * a floating or embedded chessboard visual for extra texture
 

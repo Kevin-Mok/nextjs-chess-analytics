@@ -109,75 +109,90 @@ function buildFenTimeline(moves: string[]): { fenByPly: string[]; finalFen: stri
   };
 }
 
+function sanitizePgnBlock(block: string): string {
+  let sanitized = block
+    .split("\n")
+    .filter((line) => !/^https?:\/\/\S+$/.test(line.trim()))
+    .join("\n")
+    .replace(/\{[^}]*\}/g, " ")
+    .replace(/\$\d+/g, " ");
+
+  while (/\([^()]*\)/.test(sanitized)) {
+    sanitized = sanitized.replace(/\([^()]*\)/g, " ");
+  }
+
+  return sanitized.trim();
+}
+
 export interface ParseResult {
   games: NormalizedGame[];
   warnings: string[];
 }
 
-export function parsePgnExport(raw: string): ParseResult {
-  const warnings: string[] = [];
-  const blocks = raw
+interface NormalizePgnOptions {
+  id: string;
+  sequence: number;
+}
+
+function getPgnBlocks(raw: string): string[] {
+  return raw
     .split(/(?=\[Event )/g)
     .map((block) => block.trim())
     .filter(Boolean);
+}
 
-  const games: NormalizedGame[] = [];
+function normalizePgnBlock(
+  block: string,
+  options: NormalizePgnOptions,
+): NormalizedGame {
+  const chess = new Chess();
+  chess.loadPgn(sanitizePgnBlock(block));
+  const parsedHeaders = headerSchema.parse(chess.getHeaders());
+  const playerColor = getPlayerColor(parsedHeaders);
+  const sanMoves = chess.history();
+  const { fenByPly, finalFen } = buildFenTimeline(sanMoves);
+  const result = getGameResult(playerColor, parsedHeaders.Result);
+  const openingMoves = sanMoves.slice(0, 6);
 
-  for (const [index, block] of blocks.entries()) {
-    try {
-      const chess = new Chess();
-      chess.loadPgn(block);
-      const parsedHeaders = headerSchema.parse(chess.getHeaders());
-      const playerColor = getPlayerColor(parsedHeaders);
-      const sanMoves = chess.history();
-      const { fenByPly, finalFen } = buildFenTimeline(sanMoves);
-      const sequence = index + 1;
-      const result = getGameResult(playerColor, parsedHeaders.Result);
-      const openingMoves = sanMoves.slice(0, 6);
+  return {
+    id: options.id,
+    sequence: options.sequence,
+    date: normalizeDate(parsedHeaders.Date),
+    event: parsedHeaders.Event,
+    site: parsedHeaders.Site,
+    playerColor,
+    playerDisplayName: PLAYER_IDENTITY.displayName,
+    playerUsername: PLAYER_IDENTITY.sourceUsername,
+    opponentName:
+      playerColor === "white" ? parsedHeaders.Black : parsedHeaders.White,
+    result,
+    playerRating:
+      playerColor === "white"
+        ? safeNumber(parsedHeaders.WhiteElo)
+        : safeNumber(parsedHeaders.BlackElo),
+    opponentRating:
+      playerColor === "white"
+        ? safeNumber(parsedHeaders.BlackElo)
+        : safeNumber(parsedHeaders.WhiteElo),
+    ratingDelta: null,
+    timeControl: parsedHeaders.TimeControl ?? "Unknown",
+    termination: parsedHeaders.Termination ?? "Unknown termination",
+    displayTermination: replaceDisplayIdentity(
+      parsedHeaders.Termination ?? "Unknown termination",
+    ),
+    sanMoves,
+    fenByPly,
+    plyCount: sanMoves.length,
+    moveCount: Math.ceil(sanMoves.length / 2),
+    finalFen,
+    endTime: parsedHeaders.EndTime ?? null,
+    headers: parsedHeaders,
+    openingSignature: openingMoves.join(" "),
+    openingLabel: getOpeningLabel(openingMoves),
+  };
+}
 
-      games.push({
-        id: `game-${sequence}`,
-        sequence,
-        date: normalizeDate(parsedHeaders.Date),
-        event: parsedHeaders.Event,
-        site: parsedHeaders.Site,
-        playerColor,
-        playerDisplayName: PLAYER_IDENTITY.displayName,
-        playerUsername: PLAYER_IDENTITY.sourceUsername,
-        opponentName:
-          playerColor === "white" ? parsedHeaders.Black : parsedHeaders.White,
-        result,
-        playerRating:
-          playerColor === "white"
-            ? safeNumber(parsedHeaders.WhiteElo)
-            : safeNumber(parsedHeaders.BlackElo),
-        opponentRating:
-          playerColor === "white"
-            ? safeNumber(parsedHeaders.BlackElo)
-            : safeNumber(parsedHeaders.WhiteElo),
-        ratingDelta: null,
-        timeControl: parsedHeaders.TimeControl ?? "Unknown",
-        termination: parsedHeaders.Termination ?? "Unknown termination",
-        displayTermination: replaceDisplayIdentity(
-          parsedHeaders.Termination ?? "Unknown termination",
-        ),
-        sanMoves,
-        fenByPly,
-        plyCount: sanMoves.length,
-        moveCount: Math.ceil(sanMoves.length / 2),
-        finalFen,
-        endTime: parsedHeaders.EndTime ?? null,
-        headers: parsedHeaders,
-        openingSignature: openingMoves.join(" "),
-        openingLabel: getOpeningLabel(openingMoves),
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown parsing error";
-      warnings.push(`Skipped game ${index + 1}: ${message}`);
-    }
-  }
-
+function finalizeParsedGames(games: NormalizedGame[]): NormalizedGame[] {
   const sortedGames = [...games].sort((left, right) => {
     if (left.date === right.date) {
       return left.sequence - right.sequence;
@@ -198,8 +213,46 @@ export function parsePgnExport(raw: string): ParseResult {
     }
   }
 
+  return sortedGames;
+}
+
+export function parsePgnExport(raw: string): ParseResult {
+  const warnings: string[] = [];
+  const blocks = getPgnBlocks(raw);
+
+  const games: NormalizedGame[] = [];
+
+  for (const [index, block] of blocks.entries()) {
+    try {
+      const sequence = index + 1;
+      games.push(
+        normalizePgnBlock(block, {
+          id: `game-${sequence}`,
+          sequence,
+        }),
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown parsing error";
+      warnings.push(`Skipped game ${index + 1}: ${message}`);
+    }
+  }
+
   return {
-    games: sortedGames,
+    games: finalizeParsedGames(games),
     warnings,
   };
+}
+
+export function parseSinglePgn(
+  raw: string,
+  options: NormalizePgnOptions,
+): NormalizedGame {
+  const [firstBlock] = getPgnBlocks(raw);
+
+  if (!firstBlock) {
+    throw new Error("PGN ingest failed: no valid games were parsed.");
+  }
+
+  return normalizePgnBlock(firstBlock, options);
 }

@@ -5,8 +5,9 @@ import { MobileNavMenu } from "@/components/ui/mobile-nav-menu";
 
 const navigation: Array<{ href: Route; label: string }> = [
   { href: "/", label: "Overview" },
-  { href: "/insights", label: "Insights" },
-  { href: "/games", label: "Games" },
+  { href: "/insights", label: "Elo Over Time" },
+  { href: "/highlights", label: "Highlight Games" },
+  { href: "/games", label: "All Games" },
 ];
 
 export function SiteHeader() {

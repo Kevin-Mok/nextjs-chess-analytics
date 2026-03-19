@@ -35,11 +35,11 @@ export function HomeHero({ summary }: HomeHeroProps) {
           </div>
           <div className="flex flex-wrap gap-3">
             <ButtonLink href="/insights">
-              Open insights
+              Open Elo Over Time
               <ArrowRight className="h-4 w-4" />
             </ButtonLink>
-            <ButtonLink href="/games" variant="secondary">
-              Browse games
+            <ButtonLink href="/highlights" variant="secondary">
+              Browse Highlight Games
             </ButtonLink>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">

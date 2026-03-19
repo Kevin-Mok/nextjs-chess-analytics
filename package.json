@@ -8,10 +8,12 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
+    "pretypecheck": "next typegen",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "ingest:pgn": "node --import tsx scripts/ingest-pgn.ts",
+    "ingest:highlights": "node --import tsx scripts/ingest-highlights.ts",
     "rebuild:data": "pnpm ingest:pgn",
     "predev": "pnpm rebuild:data",
     "prebuild": "pnpm rebuild:data"

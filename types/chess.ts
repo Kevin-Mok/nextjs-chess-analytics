@@ -118,6 +118,32 @@ export interface SpotlightGame {
   description: string;
 }
 
+export interface HighlightLink {
+  label: string;
+  href: string;
+}
+
+export interface HighlightSwing {
+  title: string;
+  details: string[];
+}
+
+export interface HighlightAnalysis {
+  howTheGameWasWon: string[];
+  significantSwings: HighlightSwing[];
+}
+
+export interface HighlightedGame {
+  slug: string;
+  title: string;
+  platform: string;
+  resultLabel: string;
+  whyItMatters: string;
+  links: HighlightLink[];
+  game: NormalizedGame;
+  analysis: HighlightAnalysis;
+}
+
 export interface InsightSummary {
   identity: PlayerIdentity;
   gameCount: number;

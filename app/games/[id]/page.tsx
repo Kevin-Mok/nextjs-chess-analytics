@@ -76,14 +76,14 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
   return (
     <div className="space-y-6">
       <PageIntro
-        eyebrow="Game detail"
+        eyebrow="All Games"
         title={`${game.opponentName} · ${formatFullDate(game.date)}`}
         description={`${formatColorLabel(game.playerColor)} pieces, ${formatTimeControlLabel(game.timeControl)}, and a ${game.displayTermination.toLowerCase()}.`}
         actions={
           <>
             <ResultPill result={game.result} />
             <ButtonLink href="/games" variant="secondary">
-              Back to explorer
+              Back to All Games
             </ButtonLink>
           </>
         }

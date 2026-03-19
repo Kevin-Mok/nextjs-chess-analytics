@@ -18,10 +18,10 @@ export function SiteFooter() {
             Overview
           </Link>
           <Link href="/insights" className="hover:text-white">
-            Insights
+            Elo Over Time
           </Link>
           <Link href="/games" className="hover:text-white">
-            Games
+            All Games
           </Link>
         </div>
       </div>

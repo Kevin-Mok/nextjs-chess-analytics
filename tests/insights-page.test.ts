@@ -42,7 +42,11 @@ vi.mock("@/components/insights/insights-filters", async () => {
 
   return {
     InsightsFilters: () =>
-      createElement("div", { "data-testid": "insights-filters" }, "Insights filters"),
+      createElement(
+        "div",
+        { "data-testid": "insights-filters" },
+        "Elo Over Time filters",
+      ),
   };
 });
 

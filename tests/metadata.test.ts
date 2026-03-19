@@ -46,4 +46,20 @@ describe("site metadata", () => {
     );
     expect(metadata.twitter?.images).toEqual([SITE_OG_IMAGE]);
   });
+
+  it("builds canonical URLs for explicit route pathnames", () => {
+    const metadata = createPageMetadata({ pathname: "/highlights" });
+    const canonical = metadata.alternates?.canonical;
+    const canonicalUrl =
+      typeof canonical === "string"
+        ? canonical
+        : canonical instanceof URL
+          ? canonical.toString()
+          : null;
+
+    expect(canonicalUrl).toBe(`${SITE_URL}/highlights`);
+    expect(metadata.openGraph).toMatchObject({
+      url: `${SITE_URL}/highlights`,
+    });
+  });
 });
