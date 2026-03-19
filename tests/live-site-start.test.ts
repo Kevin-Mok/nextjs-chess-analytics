@@ -10,6 +10,14 @@ import { afterEach, describe, expect, it } from "vitest";
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const managedProcesses = new Set<number>();
 
+function getChildPid(child: ReturnType<typeof spawn>) {
+  if (child.pid === undefined) {
+    throw new Error("Expected the child process to expose a pid");
+  }
+
+  return child.pid;
+}
+
 function isRunning(pid: number) {
   try {
     process.kill(pid, 0);
@@ -105,8 +113,7 @@ describe("live site start helpers", () => {
       },
     );
 
-    const parentPid = parent.pid;
-    expect(parentPid).toBeTypeOf("number");
+    const parentPid = getChildPid(parent);
     managedProcesses.add(parentPid);
 
     const parentStdout = parent.stdout;
@@ -162,8 +169,7 @@ describe("live site start helpers", () => {
       },
     );
 
-    const holderPid = holder.pid;
-    expect(holderPid).toBeTypeOf("number");
+    const holderPid = getChildPid(holder);
     managedProcesses.add(holderPid);
 
     const holderStdout = holder.stdout;
@@ -219,8 +225,7 @@ describe("live site start helpers", () => {
       },
     );
 
-    const holderPid = holder.pid;
-    expect(holderPid).toBeTypeOf("number");
+    const holderPid = getChildPid(holder);
     managedProcesses.add(holderPid);
 
     const holderStdout = holder.stdout;
