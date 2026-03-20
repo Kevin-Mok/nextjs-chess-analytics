@@ -17,8 +17,10 @@ describe("PGN ingest pipeline", () => {
   const summary = buildInsightSummary(parsed.games);
 
   it("parses every game in the export", () => {
-    expect(parsed.warnings).toHaveLength(0);
-    expect(parsed.games).toHaveLength(125);
+    expect(parsed.warnings).toEqual([
+      "Skipped game 122: TimeControl 300 is below the 600-second minimum.",
+    ]);
+    expect(parsed.games).toHaveLength(124);
   });
 
   it("maps the public player identity to Kevin Mok", () => {
@@ -29,7 +31,7 @@ describe("PGN ingest pipeline", () => {
 
   it("derives the expected result record", () => {
     expect(summary.record).toEqual({
-      wins: 65,
+      wins: 64,
       losses: 54,
       draws: 6,
     });

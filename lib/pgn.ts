@@ -134,11 +134,20 @@ interface NormalizePgnOptions {
   sequence: number;
 }
 
+const MINIMUM_INGEST_TIME_CONTROL_SECONDS = 600;
+
 function getPgnBlocks(raw: string): string[] {
   return raw
     .split(/(?=\[Event )/g)
     .map((block) => block.trim())
     .filter(Boolean);
+}
+
+function getBaseTimeControlSeconds(value: string): number | null {
+  const [base] = value.split("+");
+  const parsed = Number(base);
+
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function normalizePgnBlock(
@@ -225,12 +234,23 @@ export function parsePgnExport(raw: string): ParseResult {
   for (const [index, block] of blocks.entries()) {
     try {
       const sequence = index + 1;
-      games.push(
-        normalizePgnBlock(block, {
-          id: `game-${sequence}`,
-          sequence,
-        }),
-      );
+      const game = normalizePgnBlock(block, {
+        id: `game-${sequence}`,
+        sequence,
+      });
+      const baseTimeControlSeconds = getBaseTimeControlSeconds(game.timeControl);
+
+      if (
+        baseTimeControlSeconds !== null &&
+        baseTimeControlSeconds < MINIMUM_INGEST_TIME_CONTROL_SECONDS
+      ) {
+        warnings.push(
+          `Skipped game ${sequence}: TimeControl ${game.timeControl} is below the ${MINIMUM_INGEST_TIME_CONTROL_SECONDS}-second minimum.`,
+        );
+        continue;
+      }
+
+      games.push(game);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown parsing error";
