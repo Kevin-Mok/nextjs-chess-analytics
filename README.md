@@ -120,7 +120,7 @@ That wrapper also holds a host/port runtime lock under `/tmp`, so overlapping `p
 
 ## Validation notes
 
-- The local canonical PGN currently produces `119` games with a `59 / 54 / 6` record. The older `62 / 51 / 6` expectation was stale relative to the checked-in source file and was updated after verifying the raw headers.
+- The local canonical PGN currently produces `125` games with a `65 / 54 / 6` record after merging in the March 20 Chess.com export and deduping overlapping games.
 - `pnpm build` uses webpack plus bundled local fonts so the production build works in a network-restricted environment.
 - Next's duplicate build-time TypeScript validation is disabled in `next.config.ts`; use `pnpm typecheck` as the authoritative type gate.
 

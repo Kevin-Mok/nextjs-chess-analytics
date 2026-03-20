@@ -18,7 +18,7 @@ describe("PGN ingest pipeline", () => {
 
   it("parses every game in the export", () => {
     expect(parsed.warnings).toHaveLength(0);
-    expect(parsed.games).toHaveLength(119);
+    expect(parsed.games).toHaveLength(125);
   });
 
   it("maps the public player identity to Kevin Mok", () => {
@@ -29,7 +29,7 @@ describe("PGN ingest pipeline", () => {
 
   it("derives the expected result record", () => {
     expect(summary.record).toEqual({
-      wins: 59,
+      wins: 65,
       losses: 54,
       draws: 6,
     });
