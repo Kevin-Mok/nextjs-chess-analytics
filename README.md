@@ -1,6 +1,6 @@
 # Kevin Mok's Chess Analytics
 
-Recruiter-facing chess analytics site built as a static-data Next.js App Router project. The UI is fed by a PGN ingest pipeline that normalizes Chess.com games into derived JSON, then renders `/`, `/highlights`, `/games`, `/games/[id]`, and `/insights` without runtime PGN parsing or a separate backend.
+Recruiter-facing chess analytics site built as a static-data Next.js App Router project. The UI is fed by a PGN ingest pipeline that merges tracked Chess.com history with a cached Lichess export into derived JSON, then renders `/`, `/highlights`, `/games`, `/games/[id]`, and `/insights` without runtime PGN parsing or a separate backend.
 
 ## Live demo
 
@@ -8,7 +8,7 @@ Recruiter-facing chess analytics site built as a static-data Next.js App Router 
 
 ## Project purpose
 
-- Turn a raw Chess.com export into a polished frontend portfolio artifact.
+- Turn raw Chess.com and Lichess history into a polished frontend portfolio artifact.
 - Demonstrate typed data modeling, App Router composition, charting, replay controls, and recruiter-facing storytelling.
 - Keep the runtime simple: pages read derived JSON only.
 
@@ -37,35 +37,39 @@ Recruiter-facing chess analytics site built as a static-data Next.js App Router 
 
 ## PGN source and identity mapping
 
-- Canonical source PGN: `pgn/chess_com_games_2026-03-15_combined.pgn`
+- Tracked Chess.com source PGN: `pgn/chess_com_games_2026-03-15_combined.pgn`
+- Cached Lichess source PGN: `data/cache/lichess_SoloPistol_latest.pgn`
 - Public display identity: `Kevin Mok`
 - Source-data username: `SoloPistol`
 - Identity mapping lives in [`lib/identity.ts`](/home/kevin/coding/chess-site/lib/identity.ts)
 
 The ingest pipeline preserves the source username where needed for parsing, then replaces public-facing text with the display identity in normalized output.
+Each normalized game also carries a platform tag so the UI can keep Chess.com and Lichess rating pools separate.
 
 ## Ingest and rebuild workflow
 
-1. Raw PGN is parsed by [`scripts/ingest-pgn.ts`](/home/kevin/coding/chess-site/scripts/ingest-pgn.ts).
-2. Curated Highlight Games can be refreshed from the external chess workspace with [`scripts/ingest-highlights.ts`](/home/kevin/coding/chess-site/scripts/ingest-highlights.ts).
-3. Highlight Game source snapshots are stored under `content/highlights/` after ingest.
-4. Parsing and normalization live in [`lib/pgn.ts`](/home/kevin/coding/chess-site/lib/pgn.ts).
-5. Highlight Game README parsing, manifest generation, and markdown excerpt parsing live in [`lib/highlights.ts`](/home/kevin/coding/chess-site/lib/highlights.ts).
-6. Summary analytics live in [`lib/analytics.ts`](/home/kevin/coding/chess-site/lib/analytics.ts).
-7. Derived JSON is written to `data/derived/`:
+1. [`scripts/fetch-lichess-games.ts`](/home/kevin/coding/chess-site/scripts/fetch-lichess-games.ts) refreshes the cached Lichess PGN before `pnpm build`.
+2. [`scripts/ingest-pgn.ts`](/home/kevin/coding/chess-site/scripts/ingest-pgn.ts) parses the tracked Chess.com PGN plus the cached Lichess PGN and writes one combined derived dataset.
+3. Curated Highlight Games can be refreshed from the external chess workspace with [`scripts/ingest-highlights.ts`](/home/kevin/coding/chess-site/scripts/ingest-highlights.ts).
+4. Highlight Game source snapshots are stored under `content/highlights/` after ingest.
+5. Parsing and normalization live in [`lib/pgn.ts`](/home/kevin/coding/chess-site/lib/pgn.ts).
+6. Highlight Game README parsing, manifest generation, and markdown excerpt parsing live in [`lib/highlights.ts`](/home/kevin/coding/chess-site/lib/highlights.ts).
+7. Summary analytics live in [`lib/analytics.ts`](/home/kevin/coding/chess-site/lib/analytics.ts).
+8. Derived JSON is written to `data/derived/`:
    - `games.json`
    - `summary.json`
    - `openings.json`
    - `highlights.json`
-8. Pages load only through [`lib/data.ts`](/home/kevin/coding/chess-site/lib/data.ts).
+9. Pages load only through [`lib/data.ts`](/home/kevin/coding/chess-site/lib/data.ts).
 
-`data/derived/` is ignored from source control and should be rebuilt from the canonical PGN when the export changes.
+`data/derived/` and `data/cache/` are ignored from source control. `pnpm build` refreshes the Lichess cache first; if that refresh fails but a prior cache exists, the build reuses the cache instead of silently dropping Lichess games.
 
 `pnpm ingest:highlights` reads `/home/kevin/Documents/chess/README.md` by default, matches the Highlight Game rows to PGNs under `/home/kevin/Documents/chess/games` plus analysis markdown under `/home/kevin/Documents/chess/analysis`, updates `content/highlights/`, and rewrites `data/derived/highlights.json`. Set `CHESS_HIGHLIGHTS_ROOT` if the external chess workspace lives elsewhere.
 
 ## Local commands
 
 ```bash
+pnpm fetch:lichess
 pnpm ingest:pgn
 pnpm ingest:highlights
 pnpm test
@@ -88,7 +92,7 @@ What it does:
 - Refuses to deploy from a dirty git checkout.
 - Acquires `log/live-site.lock` so overlapping restart runs fail fast instead of racing each other.
 - Uses `git pull --ff-only` to avoid merge commits on the server.
-- Runs `pnpm install --frozen-lockfile` before `pnpm run build`.
+- Runs `pnpm install --frozen-lockfile` before `pnpm run build`, which refreshes the cached Lichess PGN as part of `prebuild`.
 - Stops existing repo-local `pnpm start` / `pnpm exec next start` runners before restarting, including their child processes.
 - Restarts the live server with `nohup pnpm start -- --hostname 127.0.0.1 --port 3003`.
 - Writes the managed PID to `log/live-site.pid` and app output to `log/live-site.log`.
@@ -120,8 +124,9 @@ That wrapper also holds a host/port runtime lock under `/tmp`, so overlapping `p
 
 ## Validation notes
 
-- The local canonical PGN currently produces `125` games with a `65 / 54 / 6` record after merging in the March 20 Chess.com export and deduping overlapping games.
-- `pnpm build` uses webpack plus bundled local fonts so the production build works in a network-restricted environment.
+- The tracked Chess.com PGN remains the durable historical source, while the latest Lichess games are cached locally before builds so the live checkout does not need tracked PGN edits.
+- Rating visuals intentionally split Chess.com and Lichess into separate lines and platform-specific summaries, because their Elo pools are not comparable as one number.
+- `pnpm build` uses webpack plus bundled local fonts; it will refresh the cached Lichess PGN first and can fall back to the last cache when the API is temporarily unavailable.
 - Next's duplicate build-time TypeScript validation is disabled in `next.config.ts`; use `pnpm typecheck` as the authoritative type gate.
 
 ## Social preview checklist

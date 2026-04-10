@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Activity, ArrowRightLeft, Clock3, Flame, Layers3, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, ArrowRightLeft, Clock3, Layers3, TrendingDown, TrendingUp } from "lucide-react";
 
 import { ActivityHeatmap } from "@/components/insights/activity-heatmap";
 import { EloChart } from "@/components/insights/elo-chart";
@@ -16,7 +16,6 @@ import {
   getDateRangeForInsightWindow,
 } from "@/lib/game-filters";
 import {
-  formatFullDate,
   formatRating,
   formatTimeControlLabel,
 } from "@/lib/formatters";
@@ -70,12 +69,17 @@ export default async function InsightsPage({
     ...dateRange,
   });
   const summary = buildInsightSummary(filteredGames);
-  const peakMilestone =
-    summary.milestonePoints.find((point) => point.title === "Peak rating") ??
-    null;
-  const floorMilestone =
-    summary.milestonePoints.find((point) => point.title === "Lowest point") ??
-    null;
+  const ratingPlatforms = summary.ratingPlatforms;
+  const ratingPoints = ratingPlatforms
+    .flatMap((platform) => platform.eloSeries)
+    .sort((left, right) => left.sequence - right.sequence);
+  const ratingMilestones = ratingPlatforms
+    .flatMap((platform) => platform.milestonePoints)
+    .sort((left, right) => left.sequence - right.sequence);
+  const platformCounts = filteredGames.reduce<Record<string, number>>((counts, game) => {
+    counts[game.platform] = (counts[game.platform] ?? 0) + 1;
+    return counts;
+  }, {});
   const hasFilteredGames = filteredGames.length > 0;
 
   return (
@@ -99,8 +103,8 @@ export default async function InsightsPage({
             </div>
             <div data-slot="insights-chart" className="order-1 md:order-2">
               <EloChart
-                points={summary.eloSeries}
-                milestones={summary.milestonePoints}
+                points={ratingPoints}
+                milestones={ratingMilestones}
               />
             </div>
           </>
@@ -124,14 +128,35 @@ export default async function InsightsPage({
           <div className="grid gap-4 xl:grid-cols-3">
             <Panel className="p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/78">
-                Narrative
+                Rating pools
               </p>
-              <p className="mt-3 text-lg leading-8 text-white/72">
-                Peak rating landed at {formatRating(summary.peakRating)}
-                {peakMilestone ? ` on ${formatFullDate(peakMilestone.date)}` : ""}
-                , while the floor sat at {formatRating(summary.lowestRating)}
-                {floorMilestone ? ` on ${formatFullDate(floorMilestone.date)}` : ""}.
+              <div className="mt-4 grid gap-3">
+                {ratingPlatforms.map((platform) => (
+                  <MiniSummary
+                    key={platform.platform}
+                    label={platform.label}
+                    value={formatRating(platform.currentRating)}
+                    detail={`Peak ${formatRating(platform.peakRating)} · Volatility ${Math.round(platform.ratingVolatility)}`}
+                    icon={<TrendingUp className="h-4 w-4" />}
+                  />
+                ))}
+              </div>
+            </Panel>
+            <Panel className="p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/78">
+                Peaks and floors
               </p>
+              <div className="mt-4 grid gap-3">
+                {ratingPlatforms.map((platform) => (
+                  <MiniSummary
+                    key={platform.platform}
+                    label={platform.label}
+                    value={`${formatRating(platform.peakRating)} / ${formatRating(platform.lowestRating)}`}
+                    detail="Peak / floor"
+                    icon={<Layers3 className="h-4 w-4" />}
+                  />
+                ))}
+              </div>
             </Panel>
             <Panel className="p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/78">
@@ -149,25 +174,6 @@ export default async function InsightsPage({
                   value={formatPercent(summary.black.winRate)}
                   detail={`${summary.black.wins}-${summary.black.losses}-${summary.black.draws}`}
                   icon={<ArrowRightLeft className="h-4 w-4" />}
-                />
-              </div>
-            </Panel>
-            <Panel className="p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/78">
-                Recent trend
-              </p>
-              <div className="mt-4 grid gap-3">
-                <MiniSummary
-                  label="Current rating"
-                  value={formatRating(summary.currentRating)}
-                  detail={`Volatility ${Math.round(summary.ratingVolatility)}`}
-                  icon={<TrendingUp className="h-4 w-4" />}
-                />
-                <MiniSummary
-                  label="Recent form"
-                  value={formatPercent(summary.bestRecentForm.winRate)}
-                  detail={`${summary.bestRecentForm.record.wins}-${summary.bestRecentForm.record.losses}-${summary.bestRecentForm.record.draws} over ${summary.bestRecentForm.games}`}
-                  icon={<Flame className="h-4 w-4" />}
                 />
               </div>
             </Panel>
@@ -258,13 +264,9 @@ export default async function InsightsPage({
                   icon={<Clock3 className="h-4 w-4" />}
                 />
                 <MiniSummary
-                  label="Net rating change"
-                  value={
-                    summary.netRatingChange === null
-                      ? "n/a"
-                      : `${summary.netRatingChange > 0 ? "+" : ""}${summary.netRatingChange}`
-                  }
-                  detail={`Across ${summary.gameCount} games`}
+                  label="Platforms"
+                  value={`${ratingPlatforms.length}`}
+                  detail={`Chess.com ${platformCounts["chess-com"] ?? 0} · Lichess ${platformCounts.lichess ?? 0}`}
                   icon={<ArrowRightLeft className="h-4 w-4" />}
                 />
               </div>

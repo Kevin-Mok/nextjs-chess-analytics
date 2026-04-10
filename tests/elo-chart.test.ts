@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildPlatformEloChartData,
   buildHomePreviewWindow,
   formatGameNumberTick,
   getEloChartConfig,
@@ -20,6 +21,7 @@ function createPoint(overrides: Partial<EloPoint> = {}): EloPoint {
     result: overrides.result ?? "win",
     color: overrides.color ?? "white",
     opponent: overrides.opponent ?? "Opponent",
+    platform: overrides.platform ?? "chess-com",
     timeControl: overrides.timeControl ?? "600",
     rollingAverage: overrides.rollingAverage ?? null,
   };
@@ -34,6 +36,7 @@ function createMilestone(
     gameId: overrides.gameId ?? "game-1",
     sequence: overrides.sequence ?? 1,
     date: overrides.date ?? "2026-03-15",
+    platform: overrides.platform ?? "chess-com",
     rating: overrides.rating ?? 1200,
   };
 }
@@ -65,6 +68,79 @@ describe("insights chart helpers", () => {
     ];
 
     expect(getRatingDomain(points)).toEqual([1188, 1246]);
+  });
+
+  it("builds separate line keys for Chess.com and Lichess on one timeline", () => {
+    const points = [
+      createPoint({
+        gameId: "game-1",
+        sequence: 1,
+        platform: "chess-com",
+        rating: 1188,
+      }),
+      createPoint({
+        gameId: "game-2",
+        sequence: 2,
+        platform: "lichess",
+        rating: 1012,
+      }),
+      createPoint({
+        gameId: "game-3",
+        sequence: 3,
+        platform: "chess-com",
+        rating: 1196,
+      }),
+    ];
+
+    expect(buildPlatformEloChartData(points)).toEqual([
+      expect.objectContaining({
+        sequence: 1,
+        activePlatform: "chess-com",
+        chessComRating: 1188,
+        lichessRating: null,
+      }),
+      expect.objectContaining({
+        sequence: 2,
+        activePlatform: "lichess",
+        chessComRating: null,
+        lichessRating: 1012,
+      }),
+      expect.objectContaining({
+        sequence: 3,
+        activePlatform: "chess-com",
+        chessComRating: 1196,
+        lichessRating: null,
+      }),
+    ]);
+  });
+
+  it("re-sorts mixed-platform points before assigning visible game numbers", () => {
+    const points = [
+      createPoint({
+        gameId: "game-3",
+        sequence: 3,
+        platform: "chess-com",
+        rating: 1196,
+      }),
+      createPoint({
+        gameId: "game-1",
+        sequence: 1,
+        platform: "chess-com",
+        rating: 1188,
+      }),
+      createPoint({
+        gameId: "game-2",
+        sequence: 2,
+        platform: "lichess",
+        rating: 1012,
+      }),
+    ];
+
+    expect(buildPlatformEloChartData(points).map((point) => point.sequence)).toEqual([
+      1,
+      2,
+      3,
+    ]);
   });
 
   it("pads a flat rating series so the axis still has a usable range", () => {

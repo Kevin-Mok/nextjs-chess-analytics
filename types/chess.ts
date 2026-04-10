@@ -2,6 +2,8 @@ export type PlayerColor = "white" | "black";
 
 export type GameResult = "win" | "loss" | "draw";
 
+export type GamePlatform = "chess-com" | "lichess";
+
 export interface PlayerIdentity {
   sourceUsername: string;
   displayName: string;
@@ -26,6 +28,7 @@ export interface NormalizedGame {
   id: string;
   sequence: number;
   date: string;
+  platform: GamePlatform;
   event: string;
   site: string;
   playerColor: PlayerColor;
@@ -54,6 +57,7 @@ export interface EloPoint {
   gameId: string;
   sequence: number;
   date: string;
+  platform: GamePlatform;
   rating: number;
   delta: number | null;
   result: GameResult;
@@ -69,7 +73,22 @@ export interface MilestonePoint {
   gameId: string;
   sequence: number;
   date: string;
+  platform: GamePlatform;
   rating: number;
+}
+
+export interface PlatformRatingSummary {
+  platform: GamePlatform;
+  label: string;
+  currentRating: number | null;
+  peakRating: number | null;
+  peakGameId: string | null;
+  lowestRating: number | null;
+  lowestGameId: string | null;
+  netRatingChange: number | null;
+  ratingVolatility: number;
+  eloSeries: EloPoint[];
+  milestonePoints: MilestonePoint[];
 }
 
 export interface StreakSummary {
@@ -173,6 +192,7 @@ export interface InsightSummary {
   terminationBreakdown: TerminationBreakdown[];
   eloSeries: EloPoint[];
   milestonePoints: MilestonePoint[];
+  ratingPlatforms: PlatformRatingSummary[];
   openingHighlights: OpeningSignature[];
   spotlights: SpotlightGame[];
   recentGames: NormalizedGame[];

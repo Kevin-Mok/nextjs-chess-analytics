@@ -1,7 +1,8 @@
 import { format, parseISO } from "date-fns";
 
+import { getPlatformLabel } from "@/lib/platforms";
 import { formatSignedNumber } from "@/lib/utils";
-import type { GameResult, PlayerColor } from "@/types/chess";
+import type { GamePlatform, GameResult, PlayerColor } from "@/types/chess";
 
 function formatSeconds(totalSeconds: number): string {
   if (totalSeconds >= 3600) {
@@ -41,6 +42,10 @@ export function formatResultLabel(result: GameResult): string {
 
 export function formatColorLabel(color: PlayerColor): string {
   return color === "white" ? "White" : "Black";
+}
+
+export function formatPlatformLabel(platform: GamePlatform): string {
+  return getPlatformLabel(platform);
 }
 
 export function formatRating(value: number | null): string {

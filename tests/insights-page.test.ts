@@ -7,6 +7,7 @@ const { mockGames } = vi.hoisted(() => ({
       id: "game-101",
       sequence: 101,
       date: "2026-03-15",
+      platform: "chess-com",
       event: "Live Chess",
       site: "Chess.com",
       playerColor: "white",

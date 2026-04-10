@@ -6,6 +6,7 @@ import { ResultPill } from "@/components/ui/result-pill";
 import {
   formatColorLabel,
   formatCompactDate,
+  formatPlatformLabel,
   formatRating,
   formatRatingDelta,
   formatTimeControlLabel,
@@ -39,7 +40,7 @@ export function RecentGamesPreview({ games }: RecentGamesPreviewProps) {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-white/42">
-                    {formatCompactDate(game.date)}
+                    {formatCompactDate(game.date)} · {formatPlatformLabel(game.platform)}
                   </p>
                   <p className="mt-2 font-display text-2xl text-white">
                     {game.opponentName}

@@ -2,7 +2,6 @@
 
 import { useReducedMotion, motion } from "motion/react";
 import {
-  Area,
   CartesianGrid,
   Cell,
   ComposedChart,
@@ -16,13 +15,21 @@ import {
   YAxis,
 } from "recharts";
 
-import { formatCompactDate, formatRating, formatTimeControlLabel } from "@/lib/formatters";
 import {
+  formatCompactDate,
+  formatPlatformLabel,
+  formatRating,
+  formatTimeControlLabel,
+} from "@/lib/formatters";
+import {
+  buildPlatformEloChartData,
   buildHomePreviewWindow,
   formatGameNumberTick,
   getResultColor,
   type HomePreviewAnnotation,
+  type PlatformEloChartDatum,
 } from "@/lib/insights-chart";
+import { PLATFORM_LINE_COLORS } from "@/lib/platforms";
 import { formatSignedNumber } from "@/lib/utils";
 import type { EloPoint, MilestonePoint } from "@/types/chess";
 
@@ -35,11 +42,12 @@ interface MetricChipProps {
   label: string;
   value: string;
   detail: string;
-  tone?: "default" | "positive" | "negative";
 }
 
 function HeroTooltip({ active, payload }: TooltipContentProps) {
-  const point = payload?.[0]?.payload as EloPoint | undefined;
+  const point = payload?.find((entry) => entry.payload)?.payload as
+    | PlatformEloChartDatum
+    | undefined;
 
   if (!active || !point) {
     return null;
@@ -48,13 +56,13 @@ function HeroTooltip({ active, payload }: TooltipContentProps) {
   return (
     <div className="rounded-2xl border border-white/10 bg-[#09090c]/92 px-4 py-3 text-sm shadow-[0_18px_40px_rgba(0,0,0,0.42)]">
       <p className="font-medium text-white">
-        {formatRating(point.rating)} Elo{" "}
+        {formatPlatformLabel(point.activePlatform)} · {formatRating(point.rating)} Elo{" "}
         <span className="text-white/42">
           ({point.delta === null ? "n/a" : formatSignedNumber(point.delta)})
         </span>
       </p>
       <p className="mt-1 text-white/64">
-        Game {formatGameNumberTick(point.sequence)} · {point.opponent} · {formatCompactDate(point.date)}
+        Game {formatGameNumberTick(point.gameNumber)} · {point.opponent} · {formatCompactDate(point.date)}
       </p>
       <p className="mt-1 text-white/48">
         {formatTimeControlLabel(point.timeControl)}
@@ -67,21 +75,13 @@ function MetricChip({
   label,
   value,
   detail,
-  tone = "default",
 }: MetricChipProps) {
-  const valueClassName =
-    tone === "positive"
-      ? "text-emerald-300"
-      : tone === "negative"
-        ? "text-rose-300"
-        : "text-white";
-
   return (
     <div className="min-w-[9rem] rounded-[1.25rem] border border-white/10 bg-white/[0.04] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-sm">
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-white/42">
         {label}
       </p>
-      <p className={`mt-2 font-display text-xl ${valueClassName}`}>{value}</p>
+      <p className="mt-2 font-display text-xl text-white">{value}</p>
       <p className="mt-1 text-xs text-white/48">{detail}</p>
     </div>
   );
@@ -102,9 +102,10 @@ export function HeroPreview({ points, milestones = [] }: HeroPreviewProps) {
   const prefersReducedMotion = useReducedMotion();
   const preview = buildHomePreviewWindow(points, milestones);
   const recentPoints = preview.points;
+  const chartData = buildPlatformEloChartData(recentPoints);
   const firstPoint = recentPoints[0];
   const lastPoint = recentPoints.at(-1);
-  const xAxisTickCount = recentPoints.length > 1 ? Math.min(6, recentPoints.length) : 1;
+  const xAxisTickCount = chartData.length > 1 ? Math.min(6, chartData.length) : 1;
   const labelMidpoint = (preview.domain[0] + preview.domain[1]) / 2;
   const record = recentPoints.reduce(
     (summary, point) => {
@@ -120,16 +121,7 @@ export function HeroPreview({ points, milestones = [] }: HeroPreviewProps) {
     },
     { wins: 0, losses: 0, draws: 0 },
   );
-  const windowDelta =
-    firstPoint && lastPoint ? lastPoint.rating - firstPoint.rating : null;
-  const rollingAveragePoint = [...recentPoints]
-    .reverse()
-    .find((point) => point.rollingAverage !== null);
-  const rollingAverageValue =
-    rollingAveragePoint?.rollingAverage === null ||
-    rollingAveragePoint?.rollingAverage === undefined
-      ? null
-      : Math.round(rollingAveragePoint.rollingAverage);
+  const platformLabels = [...new Set(recentPoints.map((point) => formatPlatformLabel(point.platform)))];
 
   if (recentPoints.length === 0 || !firstPoint || !lastPoint) {
     return null;
@@ -187,26 +179,9 @@ export function HeroPreview({ points, milestones = [] }: HeroPreviewProps) {
               detail={`${recentPoints.length} recent games`}
             />
             <MetricChip
-              label="Swing"
-              value={
-                windowDelta === null
-                  ? "n/a"
-                  : `${formatSignedNumber(windowDelta)} Elo`
-              }
-              detail={
-                rollingAverageValue === null
-                  ? "Rolling avg warming up"
-                  : `Trendline ${formatRating(rollingAverageValue)}`
-              }
-              tone={
-                windowDelta === null
-                  ? "default"
-                  : windowDelta > 0
-                    ? "positive"
-                    : windowDelta < 0
-                      ? "negative"
-                      : "default"
-              }
+              label="Latest point"
+              value={`${formatPlatformLabel(lastPoint.platform)} ${formatRating(lastPoint.rating)}`}
+              detail="Most recent rated game"
             />
             <MetricChip
               label="Record"
@@ -215,6 +190,20 @@ export function HeroPreview({ points, milestones = [] }: HeroPreviewProps) {
             />
           </div>
           <div className="flex flex-wrap gap-4 text-[0.65rem] uppercase tracking-[0.22em] text-white/46">
+            {platformLabels.map((label) => (
+              <span key={label} className="inline-flex items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{
+                    backgroundColor:
+                      label === "Chess.com"
+                        ? PLATFORM_LINE_COLORS["chess-com"]
+                        : PLATFORM_LINE_COLORS.lichess,
+                  }}
+                />
+                {label}
+              </span>
+            ))}
             <span className="inline-flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
               Wins
@@ -232,20 +221,13 @@ export function HeroPreview({ points, milestones = [] }: HeroPreviewProps) {
         <div className="mt-6 h-[20rem] rounded-[1.7rem] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] px-2 pb-1 pt-3 sm:h-[21rem] sm:px-3">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
-              data={recentPoints}
+              data={chartData}
               margin={{ top: 18, right: 14, left: 10, bottom: 6 }}
             >
-              <defs>
-                <linearGradient id="heroRatingGlow" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f5cc80" stopOpacity={0.5} />
-                  <stop offset="65%" stopColor="#f5cc80" stopOpacity={0.16} />
-                  <stop offset="100%" stopColor="#f5cc80" stopOpacity={0.04} />
-                </linearGradient>
-              </defs>
               <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
               <XAxis
                 type="number"
-                dataKey="sequence"
+                dataKey="gameNumber"
                 domain={["dataMin", "dataMax"]}
                 allowDecimals={false}
                 tickCount={xAxisTickCount}
@@ -269,45 +251,37 @@ export function HeroPreview({ points, milestones = [] }: HeroPreviewProps) {
                 cursor={{ stroke: "rgba(245,204,128,0.18)", strokeWidth: 1 }}
                 content={(props) => <HeroTooltip {...props} />}
               />
-              <Area
-                type="monotone"
-                dataKey="rating"
-                fill="url(#heroRatingGlow)"
-                stroke="transparent"
-                isAnimationActive={!prefersReducedMotion}
-                animationDuration={700}
-              />
               <Line
                 type="monotone"
-                dataKey="rating"
-                stroke="#f5cc80"
+                dataKey="chessComRating"
+                stroke={PLATFORM_LINE_COLORS["chess-com"]}
                 strokeWidth={2.75}
                 dot={false}
                 activeDot={false}
+                connectNulls
                 isAnimationActive={!prefersReducedMotion}
                 animationDuration={700}
               />
               <Line
                 type="monotone"
-                dataKey="rollingAverage"
-                stroke="rgba(255,255,255,0.42)"
-                strokeDasharray="4 6"
-                strokeWidth={1.5}
+                dataKey="lichessRating"
+                stroke={PLATFORM_LINE_COLORS.lichess}
+                strokeWidth={2.75}
                 dot={false}
                 activeDot={false}
-                connectNulls={false}
+                connectNulls
                 isAnimationActive={!prefersReducedMotion}
                 animationDuration={700}
               />
-              <Scatter data={recentPoints} dataKey="rating">
-                {recentPoints.map((point) => (
+              <Scatter data={chartData} dataKey="rating">
+                {chartData.map((point) => (
                   <Cell key={point.gameId} fill={getResultColor(point.result)} />
                 ))}
               </Scatter>
               {preview.annotations.map((annotation) => (
                 <ReferenceDot
                   key={annotation.gameId}
-                  x={annotation.sequence}
+                  x={chartData.find((point) => point.gameId === annotation.gameId)?.gameNumber ?? annotation.sequence}
                   y={annotation.rating}
                   r={4.75}
                   fill={annotation.tone === "current" ? "#f5cc80" : "#f8fafc"}

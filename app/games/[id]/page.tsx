@@ -12,6 +12,7 @@ import { getGameById, getGames } from "@/lib/data";
 import {
   formatColorLabel,
   formatFullDate,
+  formatPlatformLabel,
   formatRating,
   formatRatingDelta,
   formatTimeControlLabel,
@@ -109,6 +110,7 @@ export default async function GameDetailPage({ params }: GameDetailPageProps) {
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetaItem label="Date" value={formatFullDate(game.date)} />
+          <MetaItem label="Platform" value={formatPlatformLabel(game.platform)} />
           <MetaItem label="Opponent" value={game.opponentName} />
           <MetaItem label="Color" value={formatColorLabel(game.playerColor)} />
           <MetaItem label="Rating" value={formatRating(game.playerRating)} />

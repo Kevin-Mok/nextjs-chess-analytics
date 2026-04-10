@@ -10,20 +10,23 @@ interface KpiClusterProps {
 }
 
 export function KpiCluster({ summary }: KpiClusterProps) {
+  const ratingPlatforms = summary.ratingPlatforms.slice(0, 2);
+
   return (
     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-      <StatCard
-        label="Current rating"
-        value={formatRating(summary.currentRating)}
-        detail={`Net ${summary.netRatingChange === null ? "n/a" : `${summary.netRatingChange > 0 ? "+" : ""}${summary.netRatingChange}`} across the dataset`}
-        icon={<Gauge className="h-4 w-4" />}
-      />
-      <StatCard
-        label="Peak rating"
-        value={formatRating(summary.peakRating)}
-        detail="Best single point on the ladder"
-        icon={<Crown className="h-4 w-4" />}
-      />
+      {ratingPlatforms.map((platform) => (
+        <StatCard
+          key={platform.platform}
+          label={`${platform.label} rating`}
+          value={formatRating(platform.currentRating)}
+          detail={`Peak ${formatRating(platform.peakRating)} · Net ${platform.netRatingChange === null ? "n/a" : `${platform.netRatingChange > 0 ? "+" : ""}${platform.netRatingChange}`}`}
+          icon={
+            platform.platform === "chess-com"
+              ? <Gauge className="h-4 w-4" />
+              : <Crown className="h-4 w-4" />
+          }
+        />
+      ))}
       <StatCard
         label="Win rate"
         value={formatPercent(summary.winRate)}

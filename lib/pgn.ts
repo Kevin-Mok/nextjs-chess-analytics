@@ -3,12 +3,15 @@ import { format, parse } from "date-fns";
 import { z } from "zod";
 
 import { PLAYER_IDENTITY, replaceDisplayIdentity } from "@/lib/identity";
+import { getPlatformFromSite } from "@/lib/platforms";
 import type { GameResult, NormalizedGame, PlayerColor } from "@/types/chess";
 
 const headerSchema = z.object({
   Event: z.string().default("Live Chess"),
   Site: z.string().default("Chess.com"),
   Date: z.string(),
+  UTCDate: z.string().optional(),
+  UTCTime: z.string().optional(),
   White: z.string(),
   Black: z.string(),
   Result: z.enum(["1-0", "0-1", "1/2-1/2"]),
@@ -21,6 +24,23 @@ const headerSchema = z.object({
 
 function normalizeDate(raw: string): string {
   return format(parse(raw, "yyyy.MM.dd", new Date()), "yyyy-MM-dd");
+}
+
+function extractClockTime(raw?: string): string | null {
+  if (!raw) {
+    return null;
+  }
+
+  const matched = raw.match(/\b(\d{2}:\d{2}:\d{2})\b/);
+
+  return matched?.[1] ?? null;
+}
+
+function getChronologyKeyFromHeaders(headers: z.infer<typeof headerSchema>): string {
+  const chronologyDate = normalizeDate(headers.UTCDate ?? headers.Date);
+  const chronologyTime = headers.UTCTime ?? extractClockTime(headers.EndTime) ?? "00:00:00";
+
+  return `${chronologyDate}T${chronologyTime}Z`;
 }
 
 function getPlayerColor(headers: z.infer<typeof headerSchema>): PlayerColor {
@@ -162,11 +182,13 @@ function normalizePgnBlock(
   const { fenByPly, finalFen } = buildFenTimeline(sanMoves);
   const result = getGameResult(playerColor, parsedHeaders.Result);
   const openingMoves = sanMoves.slice(0, 6);
+  const platform = getPlatformFromSite(parsedHeaders.Site);
 
   return {
     id: options.id,
     sequence: options.sequence,
-    date: normalizeDate(parsedHeaders.Date),
+    date: normalizeDate(parsedHeaders.UTCDate ?? parsedHeaders.Date),
+    platform,
     event: parsedHeaders.Event,
     site: parsedHeaders.Site,
     playerColor,
@@ -202,13 +224,7 @@ function normalizePgnBlock(
 }
 
 function finalizeParsedGames(games: NormalizedGame[]): NormalizedGame[] {
-  const sortedGames = [...games].sort((left, right) => {
-    if (left.date === right.date) {
-      return left.sequence - right.sequence;
-    }
-
-    return left.date.localeCompare(right.date);
-  });
+  const sortedGames = sortGamesByChronology(games);
 
   let previousRating: number | null = null;
   for (const game of sortedGames) {
@@ -223,6 +239,19 @@ function finalizeParsedGames(games: NormalizedGame[]): NormalizedGame[] {
   }
 
   return sortedGames;
+}
+
+export function sortGamesByChronology(games: NormalizedGame[]): NormalizedGame[] {
+  return [...games].sort((left, right) => {
+    const leftKey = getChronologyKeyFromHeaders(headerSchema.parse(left.headers));
+    const rightKey = getChronologyKeyFromHeaders(headerSchema.parse(right.headers));
+
+    if (leftKey === rightKey) {
+      return left.sequence - right.sequence;
+    }
+
+    return leftKey.localeCompare(rightKey);
+  });
 }
 
 export function parsePgnExport(raw: string): ParseResult {

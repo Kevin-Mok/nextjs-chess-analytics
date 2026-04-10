@@ -1,4 +1,4 @@
-import type { EloPoint, GameResult, MilestonePoint } from "@/types/chess";
+import type { EloPoint, GamePlatform, GameResult, MilestonePoint } from "@/types/chess";
 
 const FLAT_RATING_DOMAIN_PADDING = 8;
 const HOME_PREVIEW_WINDOW_SIZE = 18;
@@ -20,6 +20,21 @@ export interface ChartEloPoint extends EloPoint {
   gameNumber: number;
 }
 
+export interface PlatformEloChartDatum {
+  sequence: number;
+  gameNumber: number;
+  gameId: string;
+  date: string;
+  opponent: string;
+  result: GameResult;
+  timeControl: string;
+  delta: number | null;
+  rating: number;
+  activePlatform: GamePlatform;
+  chessComRating: number | null;
+  lichessRating: number | null;
+}
+
 export interface HomePreviewAnnotation {
   gameId: string;
   title: string;
@@ -37,6 +52,7 @@ export interface HomePreviewWindow {
 export interface EloChartMilestoneConfig {
   gameId: string;
   rating: number;
+  platform: GamePlatform;
   title: string;
   label: string | null;
   position: "top" | "insideBottomLeft";
@@ -86,6 +102,27 @@ export function withChartGameNumbers(points: EloPoint[]): ChartEloPoint[] {
   return points.map((point, index) => ({
     ...point,
     gameNumber: index + 1,
+  }));
+}
+
+export function buildPlatformEloChartData(
+  points: EloPoint[],
+): PlatformEloChartDatum[] {
+  const sortedPoints = [...points].sort((left, right) => left.sequence - right.sequence);
+
+  return withChartGameNumbers(sortedPoints).map((point) => ({
+    sequence: point.sequence,
+    gameNumber: point.gameNumber,
+    gameId: point.gameId,
+    date: point.date,
+    opponent: point.opponent,
+    result: point.result,
+    timeControl: point.timeControl,
+    delta: point.delta,
+    rating: point.rating,
+    activePlatform: point.platform,
+    chessComRating: point.platform === "chess-com" ? point.rating : null,
+    lichessRating: point.platform === "lichess" ? point.rating : null,
   }));
 }
 
@@ -140,6 +177,7 @@ export function getEloChartConfig({
     milestones: milestones.map((milestone) => ({
       gameId: milestone.gameId,
       rating: milestone.rating,
+      platform: milestone.platform,
       title: milestone.title,
       label: milestone.title,
       position: "top",

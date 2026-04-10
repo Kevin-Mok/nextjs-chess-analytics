@@ -6,6 +6,7 @@ import {
   formatColorLabel,
   formatCompactDate,
   formatMoveCount,
+  formatPlatformLabel,
   formatRating,
   formatRatingDelta,
   formatTimeControlLabel,
@@ -18,6 +19,7 @@ interface GamesListProps {
 
 const columns = [
   "Date",
+  "Platform",
   "Color",
   "Opponent",
   "Result",
@@ -62,6 +64,9 @@ export function GamesList({ games }: GamesListProps) {
                   >
                     <GameCell href={detailHref}>{formatCompactDate(game.date)}</GameCell>
                     <GameCell href={detailHref}>
+                      {formatPlatformLabel(game.platform)}
+                    </GameCell>
+                    <GameCell href={detailHref}>
                       {formatColorLabel(game.playerColor)}
                     </GameCell>
                     <GameCell href={detailHref}>{game.opponentName}</GameCell>
@@ -102,7 +107,7 @@ export function GamesList({ games }: GamesListProps) {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-white/40">
-                      {formatCompactDate(game.date)} ·{" "}
+                      {formatCompactDate(game.date)} · {formatPlatformLabel(game.platform)} ·{" "}
                       {formatColorLabel(game.playerColor)}
                     </p>
                     <p className="mt-2 font-display text-2xl text-white">

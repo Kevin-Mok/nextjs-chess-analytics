@@ -35,8 +35,9 @@ export function BuildStory() {
           </h2>
           <ul className="space-y-3 text-sm leading-7 text-white/66">
             <li>
-              The source export is parsed once into normalized JSON with rating history,
-              FEN timelines, opening signatures, and analytics summaries.
+              Chess.com history and a cached Lichess export are parsed into one
+              normalized JSON layer with platform tags, rating history, FEN
+              timelines, opening signatures, and analytics summaries.
             </li>
             <li>
               Pages read from `lib/data.ts` only, so the UI never reaches into

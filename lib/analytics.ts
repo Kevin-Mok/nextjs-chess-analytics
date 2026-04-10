@@ -2,11 +2,13 @@ import { format } from "date-fns";
 
 import type {
   EloPoint,
+  GamePlatform,
   HeatmapCell,
   InsightSummary,
   MilestonePoint,
   NormalizedGame,
   OpeningSignature,
+  PlatformRatingSummary,
   RecentFormSummary,
   RecordSplit,
   ResultBreakdown,
@@ -16,6 +18,7 @@ import type {
   TimeControlBreakdown,
 } from "@/types/chess";
 import { PLAYER_IDENTITY } from "@/lib/identity";
+import { getPlatformLabel } from "@/lib/platforms";
 import { average, rollingAverage } from "@/lib/utils";
 
 const INSIGHT_RATING_BASELINE = {
@@ -124,6 +127,7 @@ function buildEloSeries(games: NormalizedGame[]): EloPoint[] {
     gameId: game.id,
     sequence: game.sequence,
     date: game.date,
+    platform: game.platform,
     rating: game.playerRating ?? 0,
     delta: game.ratingDelta,
     result: game.result,
@@ -146,6 +150,17 @@ function isOnOrAfterInsightRatingBaseline(
 
 function getInsightRatingGames(games: NormalizedGame[]): NormalizedGame[] {
   return games.filter((game) => isOnOrAfterInsightRatingBaseline(game));
+}
+
+function getPlatformRatingGames(
+  games: NormalizedGame[],
+  platform: GamePlatform,
+): NormalizedGame[] {
+  if (platform === "chess-com") {
+    return getInsightRatingGames(games);
+  }
+
+  return games;
 }
 
 function buildHeatmap(games: NormalizedGame[]): HeatmapCell[] {
@@ -311,6 +326,7 @@ function buildMilestones(games: NormalizedGame[], eloSeries: EloPoint[]): Milest
     return [];
   }
 
+  const platform = eloSeries[0]?.platform ?? games[0]?.platform ?? "chess-com";
   const peak = [...eloSeries].sort((left, right) => right.rating - left.rating)[0];
   const floor = [...eloSeries].sort((left, right) => left.rating - right.rating)[0];
   const bestJump = [...eloSeries]
@@ -327,6 +343,7 @@ function buildMilestones(games: NormalizedGame[], eloSeries: EloPoint[]): Milest
       gameId: peak.gameId,
       sequence: peak.sequence,
       date: peak.date,
+      platform,
       rating: peak.rating,
     },
     {
@@ -335,6 +352,7 @@ function buildMilestones(games: NormalizedGame[], eloSeries: EloPoint[]): Milest
       gameId: floor.gameId,
       sequence: floor.sequence,
       date: floor.date,
+      platform,
       rating: floor.rating,
     },
     bestJump
@@ -344,6 +362,7 @@ function buildMilestones(games: NormalizedGame[], eloSeries: EloPoint[]): Milest
           gameId: bestJump.gameId,
           sequence: bestJump.sequence,
           date: bestJump.date,
+          platform,
           rating: bestJump.rating,
         }
       : null,
@@ -354,10 +373,76 @@ function buildMilestones(games: NormalizedGame[], eloSeries: EloPoint[]): Milest
           gameId: worstDip.gameId,
           sequence: worstDip.sequence,
           date: worstDip.date,
+          platform,
           rating: worstDip.rating,
         }
       : null,
   ].filter((item): item is MilestonePoint => item !== null);
+}
+
+function buildPlatformRatingSummaries(
+  games: NormalizedGame[],
+): PlatformRatingSummary[] {
+  const platformGroups = new Map<GamePlatform, NormalizedGame[]>();
+
+  for (const game of games) {
+    const bucket = platformGroups.get(game.platform) ?? [];
+    bucket.push(game);
+    platformGroups.set(game.platform, bucket);
+  }
+
+  return [...platformGroups.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([platform, platformGames]) => {
+      const ratingGames = getPlatformRatingGames(platformGames, platform);
+      const ratedGames = ratingGames.filter((game) => game.playerRating !== null);
+      const eloSeries = buildEloSeries(ratingGames);
+      const allRatings = ratedGames
+        .map((game) => game.playerRating)
+        .filter((rating): rating is number => rating !== null);
+      const peakGame = ratedGames.reduce<NormalizedGame | null>((best, game) => {
+        if (best === null) {
+          return game;
+        }
+
+        return (game.playerRating ?? 0) > (best.playerRating ?? 0) ? game : best;
+      }, null);
+      const lowestGame = ratedGames.reduce<NormalizedGame | null>((best, game) => {
+        if (best === null) {
+          return game;
+        }
+
+        return (game.playerRating ?? Number.POSITIVE_INFINITY) < (best.playerRating ?? Number.POSITIVE_INFINITY)
+          ? game
+          : best;
+      }, null);
+      const firstRatedGame = ratedGames[0] ?? null;
+      const lastRatedGame = ratedGames.at(-1) ?? null;
+
+      return {
+        platform,
+        label: getPlatformLabel(platform),
+        currentRating: lastRatedGame?.playerRating ?? null,
+        peakRating: peakGame?.playerRating ?? null,
+        peakGameId: peakGame?.id ?? null,
+        lowestRating: lowestGame?.playerRating ?? null,
+        lowestGameId: lowestGame?.id ?? null,
+        netRatingChange:
+          firstRatedGame?.playerRating !== null && lastRatedGame?.playerRating !== null
+            ? (lastRatedGame?.playerRating ?? 0) - (firstRatedGame?.playerRating ?? 0)
+            : null,
+        ratingVolatility:
+          allRatings.length > 1
+            ? average(
+                eloSeries
+                  .map((point) => Math.abs(point.delta ?? 0))
+                  .filter((value) => value > 0),
+              )
+            : 0,
+        eloSeries,
+        milestonePoints: buildMilestones(ratingGames, eloSeries),
+      };
+    });
 }
 
 export function buildInsightSummary(games: NormalizedGame[]): InsightSummary {
@@ -373,6 +458,7 @@ export function buildInsightSummary(games: NormalizedGame[]): InsightSummary {
   const black = withWinRate(getBreakdown(games.filter((game) => game.playerColor === "black")));
   const timeControlBreakdown = buildTimeControls(games);
   const openingHighlights = buildOpeningHighlights(games);
+  const ratingPlatforms = buildPlatformRatingSummaries(games);
 
   const peakGame = ratedGames.reduce<NormalizedGame | null>((best, game) => {
     if (best === null) {
@@ -432,6 +518,7 @@ export function buildInsightSummary(games: NormalizedGame[]): InsightSummary {
     terminationBreakdown: buildTerminations(games),
     eloSeries,
     milestonePoints: buildMilestones(ratingGames, eloSeries),
+    ratingPlatforms,
     openingHighlights: openingHighlights.slice(0, 6),
     spotlights: findSpotlights(games),
     recentGames: games.slice(-6).reverse(),

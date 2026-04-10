@@ -69,6 +69,40 @@ function readSingleChunk(stream: NodeJS.ReadableStream) {
   });
 }
 
+function readUntilContains(
+  stream: NodeJS.ReadableStream,
+  text: string,
+  timeoutMs = 5000,
+) {
+  return new Promise<string>((resolve, reject) => {
+    let output = "";
+    const handleChunk = (chunk: string | Buffer) => {
+      output += Buffer.isBuffer(chunk) ? chunk.toString("utf8") : chunk;
+
+      if (output.includes(text)) {
+        cleanup();
+        resolve(output);
+      }
+    };
+    const handleError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Timed out waiting for stream to contain: ${text}`));
+    }, timeoutMs);
+    const cleanup = () => {
+      clearTimeout(timeout);
+      stream.off("data", handleChunk);
+      stream.off("error", handleError);
+    };
+
+    stream.on("data", handleChunk);
+    stream.on("error", handleError);
+  });
+}
+
 afterEach(() => {
   for (const pid of managedProcesses) {
     try {
@@ -233,8 +267,11 @@ describe("live site start helpers", () => {
       throw new Error("Expected the runtime lock holder to expose stdout");
     }
 
-    const holderChunk = await readSingleChunk(holderStdout);
-    expect(holderChunk.toString("utf8")).toContain("next start <--hostname> <127.0.0.1> <--port> <3003>");
+    const holderOutput = await readUntilContains(
+      holderStdout,
+      "next start <--hostname> <127.0.0.1> <--port> <3003>",
+    );
+    expect(holderOutput).toContain("next start <--hostname> <127.0.0.1> <--port> <3003>");
 
     const contender = spawnSync(
       "pnpm",

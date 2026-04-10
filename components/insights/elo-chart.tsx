@@ -18,14 +18,20 @@ import {
   YAxis,
 } from "recharts";
 
-import { formatCompactDate, formatRating, formatTimeControlLabel } from "@/lib/formatters";
 import {
-  type ChartEloPoint,
+  formatCompactDate,
+  formatPlatformLabel,
+  formatRating,
+  formatTimeControlLabel,
+} from "@/lib/formatters";
+import {
+  buildPlatformEloChartData,
   formatGameNumberTick,
   getEloChartConfig,
   getRatingDomain,
-  withChartGameNumbers,
+  type PlatformEloChartDatum,
 } from "@/lib/insights-chart";
+import { PLATFORM_LINE_COLORS } from "@/lib/platforms";
 import type { EloPoint, MilestonePoint } from "@/types/chess";
 
 interface EloChartProps {
@@ -51,7 +57,9 @@ function getResultColor(result: EloPoint["result"]): string {
 }
 
 function EloTooltip({ active, payload }: TooltipContentProps) {
-  const point = payload?.[0]?.payload as ChartEloPoint | undefined;
+  const point = payload?.find((entry) => entry.payload)?.payload as
+    | PlatformEloChartDatum
+    | undefined;
 
   if (!active || !point) {
     return null;
@@ -60,7 +68,7 @@ function EloTooltip({ active, payload }: TooltipContentProps) {
   return (
     <div className="rounded-2xl border border-white/10 bg-[#09090c]/92 px-4 py-3 text-sm shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
       <p className="font-medium text-white">
-        {formatRating(point.rating)} Elo{" "}
+        {formatPlatformLabel(point.activePlatform)} · {formatRating(point.rating)} Elo{" "}
         <span className="text-white/42">
           ({point.delta === null ? "n/a" : `${point.delta > 0 ? "+" : ""}${point.delta}`})
         </span>
@@ -109,15 +117,14 @@ function subscribeToViewportMatch(
 
 export function EloChart({ points, milestones }: EloChartProps) {
   const router = useRouter();
-  const [showRollingAverage, setShowRollingAverage] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const chartPoints = withChartGameNumbers(points);
+  const chartData = buildPlatformEloChartData(points);
   const milestoneGameNumbers = new Map(
-    chartPoints.map((point) => [point.gameId, point.gameNumber]),
+    chartData.map((point) => [point.gameId, point.gameNumber]),
   );
   const [minRating, maxRating] = getRatingDomain(points);
   const chartConfig = getEloChartConfig({
-    pointCount: chartPoints.length,
+    pointCount: chartData.length,
     domain: [minRating, maxRating],
     milestones,
     isMobile,
@@ -134,26 +141,29 @@ export function EloChart({ points, milestones }: EloChartProps) {
 
   return (
     <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-4 sm:p-6">
-      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/78">
-            Elo by game #
-          </p>
-          <p className="mt-2 text-xs text-white/58 sm:text-sm">
-            Chronological game-number x-axis, result-colored points, rolling trendline, and milestone callouts.
-          </p>
-        </div>
-        <label className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-white/68 sm:text-sm">
-          <input
-            type="checkbox"
-            checked={showRollingAverage}
-            onChange={(event) => setShowRollingAverage(event.target.checked)}
-            className="accent-amber-200"
-          />
-          Show rolling average
-        </label>
+      <div className="mb-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/78">
+          Elo by game #
+        </p>
+        <p className="mt-2 text-xs text-white/58 sm:text-sm">
+          One chronological timeline, with separate Chess.com and Lichess rating lines so the two ladders never collapse into one metric.
+        </p>
       </div>
       <div className="mb-4 flex flex-wrap gap-4 text-xs uppercase tracking-[0.18em] text-white/42">
+        <span className="inline-flex items-center gap-2">
+          <span
+            className="h-2.5 w-2.5 rounded-full"
+            style={{ backgroundColor: PLATFORM_LINE_COLORS["chess-com"] }}
+          />
+          Chess.com line
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span
+            className="h-2.5 w-2.5 rounded-full"
+            style={{ backgroundColor: PLATFORM_LINE_COLORS.lichess }}
+          />
+          Lichess line
+        </span>
         <span className="inline-flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
           Wins
@@ -191,14 +201,14 @@ export function EloChart({ points, milestones }: EloChartProps) {
           >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
-                data={chartPoints}
+                data={chartData}
                 margin={chartConfig.margin}
                 onClick={(state: MouseHandlerDataParam) => {
                   const index =
                     typeof state.activeTooltipIndex === "number"
                       ? state.activeTooltipIndex
                       : -1;
-                  const point = index >= 0 ? chartPoints[index] : undefined;
+                  const point = index >= 0 ? chartData[index] : undefined;
 
                   if (point?.gameId) {
                     router.push(`/games/${point.gameId}` as Route);
@@ -239,45 +249,48 @@ export function EloChart({ points, milestones }: EloChartProps) {
                 />
                 <Line
                   type="monotone"
-                  dataKey="rating"
-                  stroke="#f5cc80"
+                  dataKey="chessComRating"
+                  stroke={PLATFORM_LINE_COLORS["chess-com"]}
                   strokeWidth={2.5}
                   dot={false}
                   activeDot={false}
+                  connectNulls
                 />
-                {showRollingAverage ? (
-                  <Line
-                    type="monotone"
-                    dataKey="rollingAverage"
-                    stroke="rgba(255,255,255,0.45)"
-                    strokeDasharray="4 6"
-                    strokeWidth={1.5}
-                    dot={false}
-                    activeDot={false}
-                    connectNulls={false}
-                  />
-                ) : null}
-                <Scatter data={chartPoints} dataKey="rating">
-                  {chartPoints.map((point) => (
+                <Line
+                  type="monotone"
+                  dataKey="lichessRating"
+                  stroke={PLATFORM_LINE_COLORS.lichess}
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={false}
+                  connectNulls
+                />
+                <Scatter data={chartData} dataKey="rating">
+                  {chartData.map((point) => (
                     <Cell key={point.gameId} fill={getResultColor(point.result)} />
                   ))}
                 </Scatter>
-                {chartConfig.milestones.map((milestone) => (
-                  <ReferenceDot
-                    key={milestone.gameId}
-                    x={milestoneGameNumbers.get(milestone.gameId) ?? 0}
-                    y={milestone.rating}
-                    r={chartConfig.milestoneDotRadius}
-                    fill="#f5cc80"
-                    stroke="rgba(9,9,12,0.95)"
-                    label={{
-                      position: milestone.position,
-                      value: milestone.label,
-                      fill: "rgba(255,255,255,0.62)",
-                      fontSize: chartConfig.milestoneLabelFontSize,
-                    }}
-                  />
-                ))}
+                {chartConfig.milestones.map((milestone) => {
+                  const labelPrefix =
+                    milestone.platform === "chess-com" ? "Chess.com" : "Lichess";
+
+                  return (
+                    <ReferenceDot
+                      key={milestone.gameId}
+                      x={milestoneGameNumbers.get(milestone.gameId) ?? 0}
+                      y={milestone.rating}
+                      r={chartConfig.milestoneDotRadius}
+                      fill={PLATFORM_LINE_COLORS[milestone.platform]}
+                      stroke="rgba(9,9,12,0.95)"
+                      label={{
+                        position: milestone.position,
+                        value: `${labelPrefix} ${milestone.title}`,
+                        fill: "rgba(255,255,255,0.62)",
+                        fontSize: chartConfig.milestoneLabelFontSize,
+                      }}
+                    />
+                  );
+                })}
               </ComposedChart>
             </ResponsiveContainer>
           </div>

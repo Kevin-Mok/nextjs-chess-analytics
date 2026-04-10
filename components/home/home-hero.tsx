@@ -11,6 +11,14 @@ interface HomeHeroProps {
 }
 
 export function HomeHero({ summary }: HomeHeroProps) {
+  const ratingPlatforms = summary.ratingPlatforms.slice(0, 2);
+  const ratingPoints = ratingPlatforms
+    .flatMap((platform) => platform.eloSeries)
+    .sort((left, right) => left.sequence - right.sequence);
+  const ratingMilestones = ratingPlatforms
+    .flatMap((platform) => platform.milestonePoints)
+    .sort((left, right) => left.sequence - right.sequence);
+
   return (
     <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <Panel className="relative overflow-hidden p-8 sm:p-10">
@@ -28,9 +36,10 @@ export function HomeHero({ summary }: HomeHeroProps) {
               Typed chess analytics with product-level polish.
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-white/64">
-              This site turns a Chess.com export into a static-data Next.js
-              experience: precomputed JSON, App Router pages, interactive
-              charts, replay controls, and recruiter-facing engineering framing.
+              This site turns Chess.com and Lichess history into one static-data
+              Next.js experience: precomputed JSON, App Router pages,
+              interactive charts, replay controls, and recruiter-facing
+              engineering framing.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -43,22 +52,16 @@ export function HomeHero({ summary }: HomeHeroProps) {
             </ButtonLink>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/40">
-                Current rating
-              </p>
-              <p className="mt-2 font-display text-3xl text-white">
-                {formatRating(summary.currentRating)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/40">
-                Peak window
-              </p>
-              <p className="mt-2 font-display text-3xl text-white">
-                {formatRating(summary.peakRating)}
-              </p>
-            </div>
+            {ratingPlatforms.map((platform) => (
+              <div key={platform.platform}>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/40">
+                  {platform.label} peak
+                </p>
+                <p className="mt-2 font-display text-3xl text-white">
+                  {formatRating(platform.peakRating)}
+                </p>
+              </div>
+            ))}
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/40">
                 Dataset span
@@ -72,8 +75,8 @@ export function HomeHero({ summary }: HomeHeroProps) {
         </div>
       </Panel>
       <HeroPreview
-        points={summary.eloSeries}
-        milestones={summary.milestonePoints}
+        points={ratingPoints}
+        milestones={ratingMilestones}
       />
     </section>
   );

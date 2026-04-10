@@ -12,11 +12,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "fetch:lichess": "node --import tsx scripts/fetch-lichess-games.ts",
     "ingest:pgn": "node --import tsx scripts/ingest-pgn.ts",
     "ingest:highlights": "node --import tsx scripts/ingest-highlights.ts",
     "rebuild:data": "pnpm ingest:pgn",
     "predev": "pnpm rebuild:data",
-    "prebuild": "pnpm rebuild:data"
+    "prebuild": "pnpm fetch:lichess && pnpm rebuild:data"
   },
   "dependencies": {
     "@radix-ui/react-slot": "latest",
